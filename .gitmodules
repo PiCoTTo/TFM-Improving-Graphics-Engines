@@ -1,0 +1,6 @@
+[submodule "third_party"]
+	path = third_party
+	url = G:\\Master Videojuegos\\TFM\\Improving Graphics Engines\\third_party
+[submodule "res"]
+	path = res
+	url = G:\\Master Videojuegos\\TFM\\Improving Graphics Engines\\res
