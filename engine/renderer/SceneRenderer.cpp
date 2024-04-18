@@ -4,6 +4,7 @@
 #include "glm/gtc/matrix_inverse.hpp"
 #include <glm/gtx/matrix_decompose.hpp>
 #include "Renderer.h"
+#include "project/Project.h"
 
 struct TextVertex
 {
@@ -46,20 +47,20 @@ void renderCube2()
              1.0f, -1.0f, -1.0f,  1.0f,  0.0f,  0.0f, 0.0f, 1.0f, // bottom-right
              1.0f,  1.0f,  1.0f,  1.0f,  0.0f,  0.0f, 1.0f, 0.0f, // top-left
              1.0f, -1.0f,  1.0f,  1.0f,  0.0f,  0.0f, 0.0f, 0.0f, // bottom-left     
-            // bottom face
-            -1.0f, -1.0f, -1.0f,  0.0f, -1.0f,  0.0f, 0.0f, 1.0f, // top-right
-             1.0f, -1.0f, -1.0f,  0.0f, -1.0f,  0.0f, 1.0f, 1.0f, // top-left
-             1.0f, -1.0f,  1.0f,  0.0f, -1.0f,  0.0f, 1.0f, 0.0f, // bottom-left
-             1.0f, -1.0f,  1.0f,  0.0f, -1.0f,  0.0f, 1.0f, 0.0f, // bottom-left
-            -1.0f, -1.0f,  1.0f,  0.0f, -1.0f,  0.0f, 0.0f, 0.0f, // bottom-right
-            -1.0f, -1.0f, -1.0f,  0.0f, -1.0f,  0.0f, 0.0f, 1.0f, // top-right
-            // top face
-            -1.0f,  1.0f, -1.0f,  0.0f,  1.0f,  0.0f, 0.0f, 1.0f, // top-left
-             1.0f,  1.0f , 1.0f,  0.0f,  1.0f,  0.0f, 1.0f, 0.0f, // bottom-right
-             1.0f,  1.0f, -1.0f,  0.0f,  1.0f,  0.0f, 1.0f, 1.0f, // top-right     
-             1.0f,  1.0f,  1.0f,  0.0f,  1.0f,  0.0f, 1.0f, 0.0f, // bottom-right
-            -1.0f,  1.0f, -1.0f,  0.0f,  1.0f,  0.0f, 0.0f, 1.0f, // top-left
-            -1.0f,  1.0f,  1.0f,  0.0f,  1.0f,  0.0f, 0.0f, 0.0f  // bottom-left        
+             // bottom face
+             -1.0f, -1.0f, -1.0f,  0.0f, -1.0f,  0.0f, 0.0f, 1.0f, // top-right
+              1.0f, -1.0f, -1.0f,  0.0f, -1.0f,  0.0f, 1.0f, 1.0f, // top-left
+              1.0f, -1.0f,  1.0f,  0.0f, -1.0f,  0.0f, 1.0f, 0.0f, // bottom-left
+              1.0f, -1.0f,  1.0f,  0.0f, -1.0f,  0.0f, 1.0f, 0.0f, // bottom-left
+             -1.0f, -1.0f,  1.0f,  0.0f, -1.0f,  0.0f, 0.0f, 0.0f, // bottom-right
+             -1.0f, -1.0f, -1.0f,  0.0f, -1.0f,  0.0f, 0.0f, 1.0f, // top-right
+             // top face
+             -1.0f,  1.0f, -1.0f,  0.0f,  1.0f,  0.0f, 0.0f, 1.0f, // top-left
+              1.0f,  1.0f , 1.0f,  0.0f,  1.0f,  0.0f, 1.0f, 0.0f, // bottom-right
+              1.0f,  1.0f, -1.0f,  0.0f,  1.0f,  0.0f, 1.0f, 1.0f, // top-right     
+              1.0f,  1.0f,  1.0f,  0.0f,  1.0f,  0.0f, 1.0f, 0.0f, // bottom-right
+             -1.0f,  1.0f, -1.0f,  0.0f,  1.0f,  0.0f, 0.0f, 1.0f, // top-left
+             -1.0f,  1.0f,  1.0f,  0.0f,  1.0f,  0.0f, 0.0f, 0.0f  // bottom-left        
         };
         glGenVertexArrays(1, &cubeVAO2);
         glGenBuffers(1, &cubeVBO2);
@@ -89,7 +90,7 @@ nimo::SceneRenderer::SceneRenderer()
     directionalLightBufferDetails.width = 4096;
     directionalLightBufferDetails.height = 4096;
     directionalLightBufferDetails.clearColorOnBind = true;
-    directionalLightBufferDetails.colorAttachments.push_back({GL_RGB16F, GL_RGB, GL_FLOAT});
+    directionalLightBufferDetails.colorAttachments.push_back({ GL_RGB16F, GL_RGB, GL_FLOAT });
     m_directionalLightDepthBuffer = std::make_shared<FrameBuffer>(directionalLightBufferDetails);
     // GBuffer
     FrameBuffer::Details gBufferDetails;
@@ -97,10 +98,10 @@ nimo::SceneRenderer::SceneRenderer()
     gBufferDetails.height = 1080;
     gBufferDetails.clearColorOnBind = true;
     gBufferDetails.clearDepthOnBind = true;
-    gBufferDetails.colorAttachments.push_back({GL_RGB16F, GL_RGB, GL_FLOAT});
-    gBufferDetails.colorAttachments.push_back({GL_RGB16F, GL_RGB, GL_FLOAT});
-    gBufferDetails.colorAttachments.push_back({GL_RGB16F, GL_RGB, GL_FLOAT});
-    gBufferDetails.colorAttachments.push_back({GL_RGB16F, GL_RGB, GL_FLOAT});
+    gBufferDetails.colorAttachments.push_back({ GL_RGB16F, GL_RGB, GL_FLOAT });
+    gBufferDetails.colorAttachments.push_back({ GL_RGB16F, GL_RGB, GL_FLOAT });
+    gBufferDetails.colorAttachments.push_back({ GL_RGB16F, GL_RGB, GL_FLOAT });
+    gBufferDetails.colorAttachments.push_back({ GL_RGB16F, GL_RGB, GL_FLOAT });
     m_gBuffer = std::make_shared<FrameBuffer>(gBufferDetails);
     // HDR color buffer
     FrameBuffer::Details hdrColorBufferDetails;
@@ -108,7 +109,7 @@ nimo::SceneRenderer::SceneRenderer()
     hdrColorBufferDetails.height = 1080;
     hdrColorBufferDetails.clearColorOnBind = true;
     hdrColorBufferDetails.clearDepthOnBind = true;
-    hdrColorBufferDetails.colorAttachments.push_back({GL_RGBA16F, GL_RGB, GL_FLOAT});
+    hdrColorBufferDetails.colorAttachments.push_back({ GL_RGBA16F, GL_RGB, GL_FLOAT });
     m_hdrColorBuffer = std::make_shared<FrameBuffer>(hdrColorBufferDetails);
     // HDR brightness buffer
     FrameBuffer::Details hdrBrightnessBufferDetails;
@@ -116,13 +117,13 @@ nimo::SceneRenderer::SceneRenderer()
     hdrBrightnessBufferDetails.height = 540;
     hdrBrightnessBufferDetails.clearColorOnBind = true;
     hdrBrightnessBufferDetails.clearDepthOnBind = true;
-    hdrBrightnessBufferDetails.colorAttachments.push_back({GL_RGBA16F, GL_RGB, GL_FLOAT});
+    hdrBrightnessBufferDetails.colorAttachments.push_back({ GL_RGBA16F, GL_RGB, GL_FLOAT });
     m_hdrBrightnessBuffer = std::make_shared<FrameBuffer>(hdrBrightnessBufferDetails);
     // HDR bloom buffers
     FrameBuffer::Details hdrBloomBufferDetails;
     hdrBloomBufferDetails.clearColorOnBind = true;
     hdrBloomBufferDetails.clearDepthOnBind = true;
-    hdrBloomBufferDetails.colorAttachments.push_back({GL_RGBA16F, GL_RGB, GL_FLOAT});
+    hdrBloomBufferDetails.colorAttachments.push_back({ GL_RGBA16F, GL_RGB, GL_FLOAT });
     hdrBloomBufferDetails.width = 1920;
     hdrBloomBufferDetails.height = 1080;
     m_hdrFinalBloomBuffer = std::make_shared<FrameBuffer>(hdrBloomBufferDetails);
@@ -176,18 +177,18 @@ nimo::SceneRenderer::SceneRenderer()
     unsigned int blackPixel = 0x00000000;
     m_black = std::make_shared<Texture>(1, 1, &blackPixel);
 
-    std::vector<QuadVertex> m_vertices ={
+    std::vector<QuadVertex> m_vertices = {
         {{1.0f,  1.0f, 0.0f}, {1.0f, 1.0f}},
         {{1.0f,  -1.0f, 0.0f}, {1.0f, 0.0f}},
         {{-1.0f,  -1.0f, 0.0f}, {0.0f, 0.0f}},
         {{-1.0f,  1.0f, 0.0f}, {0.0f, 1.0f}},
     };
-    std::vector<unsigned int> indices ={
+    std::vector<unsigned int> indices = {
         0,1,3,
         1,2,3
     };
 
-    std::vector<TextVertex> m_textvertices ={
+    std::vector<TextVertex> m_textvertices = {
         {{1.0f,  1.0f, 1.0f, 1.0f}},
         {{1.0f,  -1.0f, 1.0f, 0.0f}},
         {{-1.0f,  -1.0f, 0.0f, 0.0f}},
@@ -217,33 +218,46 @@ void nimo::SceneRenderer::SetScene(std::shared_ptr<Scene> scene)
 {
     m_scene = scene;
 }
-void nimo::SceneRenderer::Render(std::shared_ptr<FrameBuffer> target, const CameraComponent& cameraSettings, const TransformComponent& cameraTransform)
+void nimo::SceneRenderer::Render(std::shared_ptr<FrameBuffer> target, const CameraComponent& cameraSettings, const TransformComponent& cameraTransform, float deltaTime)
 {
-    m_totalFrameTimer.Reset();
+    //// If FPS is limited for the current project
+    //if (nimo::Project::GetActiveProject()->GetSettings().limitFPS)
+    //{
+    //    m_cumulativeFrameTime += deltaTime;
+
+    //    if (m_cumulativeFrameTime < 1 / 60.f)
+    //    {
+    //        return;
+    //    }
+
+    //    m_cumulativeFrameTime = 0;
+    //}
+
+    m_renderFrameTimer.Reset();
     glViewport(0, 0, target ? target->GetDetails().width : Application::Instance().GetWindow().GetWidth(), target ? target->GetDetails().height : Application::Instance().GetWindow().GetHeight());
     auto camTransform = cameraTransform;
     auto cam = cameraSettings;
     glm::mat4 projection = glm::perspectiveFov(glm::radians(cam.FOV),
-                                            target ? (float)target->GetDetails().width : (float)Application::Instance().GetWindow().GetWidth(),
-                                            target ? (float)target->GetDetails().height : (float)Application::Instance().GetWindow().GetHeight(),
-                                            cam.ClippingPlanes.Near, cam.ClippingPlanes.Far);
+        target ? (float)target->GetDetails().width : (float)Application::Instance().GetWindow().GetWidth(),
+        target ? (float)target->GetDetails().height : (float)Application::Instance().GetWindow().GetHeight(),
+        cam.ClippingPlanes.Near, cam.ClippingPlanes.Far);
     glm::mat4 projectionOrtho = glm::ortho(
         -(target ? (float)target->GetDetails().width : (float)Application::Instance().GetWindow().GetWidth()) * 0.5f,
         (target ? (float)target->GetDetails().width : (float)Application::Instance().GetWindow().GetWidth()) * 0.5f,
-        -(target ? (float)target->GetDetails().height : (float)Application::Instance().GetWindow().GetHeight()) * 0.5f, 
-        (target ? (float)target->GetDetails().height : (float)Application::Instance().GetWindow().GetHeight()) * 0.5f, 
+        -(target ? (float)target->GetDetails().height : (float)Application::Instance().GetWindow().GetHeight()) * 0.5f,
+        (target ? (float)target->GetDetails().height : (float)Application::Instance().GetWindow().GetHeight()) * 0.5f,
         -0.1f, cam.ClippingPlanes.Far);
     glm::mat4 viewMatrix = camTransform.GetView();
     auto viewPosition = glm::vec3(camTransform.Translation.x, camTransform.Translation.y, camTransform.Translation.z);
 
     m_geometryFrameTimer.Reset();
     // Render scene into gbuffer
-    glEnable(GL_DEPTH_TEST);  
-    glDepthMask(GL_TRUE);  
+    glEnable(GL_DEPTH_TEST);
+    glDepthMask(GL_TRUE);
     m_gBuffer->Bind();
     m_scene->m_registry.view<ActiveComponent, IDComponent, MeshComponent, MeshRendererComponent>().each([&](ActiveComponent& active, IDComponent& id, MeshComponent& m, MeshRendererComponent& r) {
-        if(!active.active) return;
-        if(!r.material || !r.material->shader || !m.source) return;
+        if (!active.active) return;
+        if (!r.material || !r.material->shader || !m.source) return;
         r.material->shader->use();
         r.material->Setup();
         r.material->shader->Set("viewPos", viewPosition);
@@ -258,7 +272,7 @@ void nimo::SceneRenderer::Render(std::shared_ptr<FrameBuffer> target, const Came
     // Render scene into directional light depth buffer
     auto directionalLightEntities = m_scene->m_registry.view<DirectionalLightComponent>();
     auto directionalLightProjection = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, 0.1f, 100.0f);
-    if(directionalLightEntities.size())
+    if (directionalLightEntities.size())
     {
         Entity directionalLight(*directionalLightEntities.begin(), m_scene->m_registry);
         glCullFace(GL_FRONT);
@@ -268,8 +282,8 @@ void nimo::SceneRenderer::Render(std::shared_ptr<FrameBuffer> target, const Came
         m_shaderDepth->Set("projection", directionalLightProjection);
         m_shaderDepth->Set("view", directionalLightView);
         m_scene->m_registry.view<ActiveComponent, IDComponent, MeshComponent>().each([&](ActiveComponent& active, IDComponent& id, MeshComponent& m) {
-            if(!active.active) return;
-            if(!m.source) return;
+            if (!active.active) return;
+            if (!m.source) return;
             m_shaderDepth->Set("transform", m_scene->GetWorldSpaceTransformMatrix(m_scene->GetEntity(id.Id)));
             Renderer::DrawMesh(*m.source->GetSubmesh(m.submeshIndex));
         });
@@ -284,12 +298,12 @@ void nimo::SceneRenderer::Render(std::shared_ptr<FrameBuffer> target, const Came
     m_shaderLightingPass->Set("gARM", 3);
     m_shaderLightingPass->Set("gDepth", 4);
     m_shaderLightingPass->Set("InvProjection", glm::inverse(projection));
-    m_gBuffer->BindColorTexture(0,0);
-    m_gBuffer->BindColorTexture(1,1);
-    m_gBuffer->BindColorTexture(2,2);
-    m_gBuffer->BindColorTexture(3,3);
+    m_gBuffer->BindColorTexture(0, 0);
+    m_gBuffer->BindColorTexture(1, 1);
+    m_gBuffer->BindColorTexture(2, 2);
+    m_gBuffer->BindColorTexture(3, 3);
     m_gBuffer->BindDepthTexture(4);
-    if(directionalLightEntities.size())
+    if (directionalLightEntities.size())
     {
         Entity directionalLight(*directionalLightEntities.begin(), m_scene->m_registry);
         auto directionalLightPosition = directionalLight.GetComponent<TransformComponent>().Translation;
@@ -302,9 +316,9 @@ void nimo::SceneRenderer::Render(std::shared_ptr<FrameBuffer> target, const Came
         m_shaderLightingPass->Set("directionalLightIntensity", directionalLight.GetComponent<DirectionalLightComponent>().Intensity);
     }
     int currentLights = 0;
-    m_scene->m_registry.view<IDComponent, ActiveComponent, PointLightComponent, TransformComponent>().each([&](IDComponent id, ActiveComponent active,PointLightComponent& light, TransformComponent& lightTransform)
+    m_scene->m_registry.view<IDComponent, ActiveComponent, PointLightComponent, TransformComponent>().each([&](IDComponent id, ActiveComponent active, PointLightComponent& light, TransformComponent& lightTransform)
     {
-        if(!active.active) return;
+        if (!active.active) return;
         glm::vec3 scale;
         glm::quat rotation;
         glm::vec3 translation;
@@ -326,16 +340,16 @@ void nimo::SceneRenderer::Render(std::shared_ptr<FrameBuffer> target, const Came
         m_shaderLightingPass->Set("lights[" + std::to_string(currentLights) + "].Active", true);
         currentLights++;
     });
-    for(int i = currentLights; i < 32; ++i)
+    for (int i = currentLights; i < 32; ++i)
     {
         m_shaderLightingPass->Set("lights[" + std::to_string(i) + "].Active", false);
     }
     m_shaderLightingPass->Set("viewPos", viewPosition);
     auto skyLightEntities = m_scene->m_registry.view<SkyLightComponent>();
-    if(skyLightEntities.size())
+    if (skyLightEntities.size())
     {
         Entity skyLight(*skyLightEntities.begin(), m_scene->m_registry);
-        if(skyLight.GetComponent<SkyLightComponent>().environment)
+        if (skyLight.GetComponent<SkyLightComponent>().environment)
         {
             m_shaderLightingPass->Set("irradianceMap", 8);
             skyLight.GetComponent<SkyLightComponent>().environment->BindIrradiance(8);
@@ -350,10 +364,10 @@ void nimo::SceneRenderer::Render(std::shared_ptr<FrameBuffer> target, const Came
     m_backgroundPass->use();
     m_backgroundPass->Set("view", viewMatrix);
     m_backgroundPass->Set("projection", projection);
-    if(skyLightEntities.size())
+    if (skyLightEntities.size())
     {
         Entity skyLight(*skyLightEntities.begin(), m_scene->m_registry);
-        if(skyLight.GetComponent<SkyLightComponent>().environment)
+        if (skyLight.GetComponent<SkyLightComponent>().environment)
         {
             m_backgroundPass->Set("environmentMap", 0);
             skyLight.GetComponent<SkyLightComponent>().environment->Bind(0);
@@ -369,97 +383,97 @@ void nimo::SceneRenderer::Render(std::shared_ptr<FrameBuffer> target, const Came
     m_hdrBrightFilterPass->use();
     m_hdrBrightFilterPass->Set("bloomThreshold", 1.2f);
     m_hdrBrightFilterPass->Set("hdrBuffer", 0);
-    m_hdrColorBuffer->BindColorTexture(0,0);
+    m_hdrColorBuffer->BindColorTexture(0, 0);
     Renderer::DrawFullScreenQuad();
     // Downsample
     m_hdrBloomDownsample1Buffer->Bind(); //480x270
     m_hdrBloomDownsamplePass->use();
     m_hdrBloomDownsamplePass->Set("hdrBuffer", 0);
-    m_hdrBrightnessBuffer->BindColorTexture(0,0); //960x540
+    m_hdrBrightnessBuffer->BindColorTexture(0, 0); //960x540
     m_hdrBloomDownsamplePass->Set("textureResolution", glm::vec2(960.0f, 540.0f));
     Renderer::DrawFullScreenQuad();
     m_hdrBloomDownsample2Buffer->Bind(); //240x135
-    m_hdrBloomDownsample1Buffer->BindColorTexture(0,0); //480x270
-    m_hdrBloomDownsamplePass->Set("textureResolution", glm::vec2(480.0f, 270.0f)); 
+    m_hdrBloomDownsample1Buffer->BindColorTexture(0, 0); //480x270
+    m_hdrBloomDownsamplePass->Set("textureResolution", glm::vec2(480.0f, 270.0f));
     Renderer::DrawFullScreenQuad();
     m_hdrBloomDownsample3Buffer->Bind(); //120x67
-    m_hdrBloomDownsample2Buffer->BindColorTexture(0,0); //240x135
+    m_hdrBloomDownsample2Buffer->BindColorTexture(0, 0); //240x135
     m_hdrBloomDownsamplePass->Set("textureResolution", glm::vec2(240.0f, 135.0f));
     Renderer::DrawFullScreenQuad();
     m_hdrBloomDownsample4Buffer->Bind(); //60x33
-    m_hdrBloomDownsample3Buffer->BindColorTexture(0,0); //120x67
-    m_hdrBloomDownsamplePass->Set("textureResolution", glm::vec2(120.0f, 67.0f)); 
+    m_hdrBloomDownsample3Buffer->BindColorTexture(0, 0); //120x67
+    m_hdrBloomDownsamplePass->Set("textureResolution", glm::vec2(120.0f, 67.0f));
     Renderer::DrawFullScreenQuad();
     m_hdrBloomDownsample5Buffer->Bind(); //30x16
-    m_hdrBloomDownsample4Buffer->BindColorTexture(0,0); //60x33
-    m_hdrBloomDownsamplePass->Set("textureResolution", glm::vec2(60.0f, 33.0f)); 
+    m_hdrBloomDownsample4Buffer->BindColorTexture(0, 0); //60x33
+    m_hdrBloomDownsamplePass->Set("textureResolution", glm::vec2(60.0f, 33.0f));
     Renderer::DrawFullScreenQuad();
     m_hdrBloomDownsample6Buffer->Bind(); //15x8
-    m_hdrBloomDownsample5Buffer->BindColorTexture(0,0); //30x16
-    m_hdrBloomDownsamplePass->Set("textureResolution", glm::vec2(30.0f, 16.0f)); 
+    m_hdrBloomDownsample5Buffer->BindColorTexture(0, 0); //30x16
+    m_hdrBloomDownsamplePass->Set("textureResolution", glm::vec2(30.0f, 16.0f));
     Renderer::DrawFullScreenQuad();
     //Upsample
     m_hdrBloomUpsample6Buffer->Bind(); //30x16
     m_hdrBloomUpsamplePass->use();
     m_hdrBloomUpsamplePass->Set("textureBig", 0);
-    m_hdrBloomDownsample5Buffer->BindColorTexture(0,0); //30x16
+    m_hdrBloomDownsample5Buffer->BindColorTexture(0, 0); //30x16
     m_hdrBloomUpsamplePass->Set("textureSmall", 1);
-    m_hdrBloomDownsample6Buffer->BindColorTexture(0,1); //15x8
-    m_hdrBloomDownsamplePass->Set("textureResolution", glm::vec2(15.0f, 8.0f)); 
+    m_hdrBloomDownsample6Buffer->BindColorTexture(0, 1); //15x8
+    m_hdrBloomDownsamplePass->Set("textureResolution", glm::vec2(15.0f, 8.0f));
     Renderer::DrawFullScreenQuad();
     m_hdrBloomUpsample5Buffer->Bind(); //60x33
     m_hdrBloomUpsamplePass->use();
     m_hdrBloomUpsamplePass->Set("textureBig", 0);
-    m_hdrBloomDownsample4Buffer->BindColorTexture(0,0); //60x33
+    m_hdrBloomDownsample4Buffer->BindColorTexture(0, 0); //60x33
     m_hdrBloomUpsamplePass->Set("textureSmall", 1);
-    m_hdrBloomUpsample6Buffer->BindColorTexture(0,1); //30x16
-    m_hdrBloomDownsamplePass->Set("textureResolution", glm::vec2(30.0f, 16.0f)); 
+    m_hdrBloomUpsample6Buffer->BindColorTexture(0, 1); //30x16
+    m_hdrBloomDownsamplePass->Set("textureResolution", glm::vec2(30.0f, 16.0f));
     Renderer::DrawFullScreenQuad();
     m_hdrBloomUpsample4Buffer->Bind(); //120x67
     m_hdrBloomUpsamplePass->use();
     m_hdrBloomUpsamplePass->Set("textureBig", 0);
-    m_hdrBloomDownsample3Buffer->BindColorTexture(0,0); //120x67
+    m_hdrBloomDownsample3Buffer->BindColorTexture(0, 0); //120x67
     m_hdrBloomUpsamplePass->Set("textureSmall", 1);
-    m_hdrBloomUpsample5Buffer->BindColorTexture(0,1); //60x33
-    m_hdrBloomDownsamplePass->Set("textureResolution", glm::vec2(60.0f, 33.0f)); 
+    m_hdrBloomUpsample5Buffer->BindColorTexture(0, 1); //60x33
+    m_hdrBloomDownsamplePass->Set("textureResolution", glm::vec2(60.0f, 33.0f));
     Renderer::DrawFullScreenQuad();
     m_hdrBloomUpsample3Buffer->Bind(); //240x135
     m_hdrBloomUpsamplePass->use();
     m_hdrBloomUpsamplePass->Set("textureBig", 0);
-    m_hdrBloomDownsample2Buffer->BindColorTexture(0,0); //240x135
+    m_hdrBloomDownsample2Buffer->BindColorTexture(0, 0); //240x135
     m_hdrBloomUpsamplePass->Set("textureSmall", 1);
-    m_hdrBloomUpsample4Buffer->BindColorTexture(0,1); //120x67
-    m_hdrBloomDownsamplePass->Set("textureResolution", glm::vec2(120.0f, 67.0f)); 
+    m_hdrBloomUpsample4Buffer->BindColorTexture(0, 1); //120x67
+    m_hdrBloomDownsamplePass->Set("textureResolution", glm::vec2(120.0f, 67.0f));
     Renderer::DrawFullScreenQuad();
     m_hdrBloomUpsample2Buffer->Bind(); //480x270
     m_hdrBloomUpsamplePass->use();
     m_hdrBloomUpsamplePass->Set("textureBig", 0);
-    m_hdrBloomDownsample1Buffer->BindColorTexture(0,0); //480x270
+    m_hdrBloomDownsample1Buffer->BindColorTexture(0, 0); //480x270
     m_hdrBloomUpsamplePass->Set("textureSmall", 1);
-    m_hdrBloomUpsample3Buffer->BindColorTexture(0,1); //240x135
-    m_hdrBloomDownsamplePass->Set("textureResolution", glm::vec2(240.0f, 135.0f)); 
+    m_hdrBloomUpsample3Buffer->BindColorTexture(0, 1); //240x135
+    m_hdrBloomDownsamplePass->Set("textureResolution", glm::vec2(240.0f, 135.0f));
     Renderer::DrawFullScreenQuad();
     m_hdrBloomUpsample1Buffer->Bind(); //960x540
     m_hdrBloomUpsamplePass->use();
     m_hdrBloomUpsamplePass->Set("textureBig", 0);
-    m_hdrBrightnessBuffer->BindColorTexture(0,0); //960x540
+    m_hdrBrightnessBuffer->BindColorTexture(0, 0); //960x540
     m_hdrBloomUpsamplePass->Set("textureSmall", 1);
-    m_hdrBloomUpsample2Buffer->BindColorTexture(0,1); //480x270
-    m_hdrBloomDownsamplePass->Set("textureResolution", glm::vec2(480.0f, 270.0f)); 
+    m_hdrBloomUpsample2Buffer->BindColorTexture(0, 1); //480x270
+    m_hdrBloomDownsamplePass->Set("textureResolution", glm::vec2(480.0f, 270.0f));
     Renderer::DrawFullScreenQuad();
 
     m_hdrFinalBloomBuffer->Bind(); //1920x1080
     m_hdrBloomUpsamplePass->use();
     m_hdrBloomUpsamplePass->Set("textureBig", 0);
-    m_hdrColorBuffer->BindColorTexture(0,0); //1920x1080
+    m_hdrColorBuffer->BindColorTexture(0, 0); //1920x1080
     m_hdrBloomUpsamplePass->Set("textureSmall", 1);
-    m_hdrBloomUpsample1Buffer->BindColorTexture(0,1); //960x540
-    m_hdrBloomDownsamplePass->Set("textureResolution", glm::vec2(960.0f, 540.0f)); 
+    m_hdrBloomUpsample1Buffer->BindColorTexture(0, 1); //960x540
+    m_hdrBloomDownsamplePass->Set("textureResolution", glm::vec2(960.0f, 540.0f));
     Renderer::DrawFullScreenQuad();
     m_bloomFrameTimer.Stop();
 
     // HDR tone mapping pass
-    if(target)
+    if (target)
         target->Bind();
     else
     {
@@ -468,7 +482,7 @@ void nimo::SceneRenderer::Render(std::shared_ptr<FrameBuffer> target, const Came
     }
     m_hdrToneMappingPass->use();
     m_hdrToneMappingPass->Set("hdrBuffer", 0);
-    m_hdrFinalBloomBuffer->BindColorTexture(0,0);
+    m_hdrFinalBloomBuffer->BindColorTexture(0, 0);
     Renderer::DrawFullScreenQuad();
 
     m_geometry2DFrameTimer.Reset();
@@ -483,10 +497,10 @@ void nimo::SceneRenderer::Render(std::shared_ptr<FrameBuffer> target, const Came
     auto draw2DLayer = [&](int layer)
     {
         m_scene->m_registry.view<ActiveComponent, IDComponent, SpriteRendererComponent>().each([&](ActiveComponent& active, IDComponent& id, SpriteRendererComponent& r) {
-            if(!active.active) return;
-            if(r.layer != layer) return;
+            if (!active.active) return;
+            if (r.layer != layer) return;
             m_shader2d->Set("transform", m_scene->GetWorldSpaceTransformMatrix(m_scene->GetEntity(id.Id)));
-            if(!r.texture)
+            if (!r.texture)
             {
                 m_white->bind(0);
             }
@@ -514,8 +528,8 @@ void nimo::SceneRenderer::Render(std::shared_ptr<FrameBuffer> target, const Came
     m_shaderText->Set("projection", projectionOrtho);
     m_shaderText->Set("text", 0);
     m_scene->m_registry.view<ActiveComponent, IDComponent, TransformComponent, TextRendererComponent>().each([&](ActiveComponent active, IDComponent& id, TransformComponent& t, TextRendererComponent& r) {
-        if(!active.active) return;
-        if(!r.font) return;
+        if (!active.active) return;
+        if (!r.font) return;
         float x = .0f;
         float y = .0f;
         glm::vec3 scale;
@@ -525,18 +539,18 @@ void nimo::SceneRenderer::Render(std::shared_ptr<FrameBuffer> target, const Came
         glm::vec4 perspective;
         glm::decompose(m_scene->GetWorldSpaceTransformMatrix(m_scene->GetEntity(id.Id)), scale, rotation, translation, skew, perspective);
         m_shaderText->Set("color", r.Color);
-        for(std::string::const_iterator c = r.text.begin(); c != r.text.end(); ++c)
+        for (std::string::const_iterator c = r.text.begin(); c != r.text.end(); ++c)
         {
             auto& glyphIt = r.font->m_glyphs.find(*c);
-            if(glyphIt == r.font->m_glyphs.end()) continue;
+            if (glyphIt == r.font->m_glyphs.end()) continue;
             auto& glyph = glyphIt->second;
-            if(*c == '\n')
+            if (*c == '\n')
             {
                 y -= (r.font->lineSpacing >> 6) * t.Scale.y;
                 x = 0.0f;
                 continue;
             }
-            float xpos = x + ((float)glyph.bearing.x + (float)glyph.size.x * 0.5f)* t.Scale.x;
+            float xpos = x + ((float)glyph.bearing.x + (float)glyph.size.x * 0.5f) * t.Scale.x;
             float ypos = y + ((float)glyph.bearing.y) * 0.5f * t.Scale.y - ((float)glyph.size.y - (float)glyph.bearing.y) * 0.5f * t.Scale.y;
             float w = (float)glyph.size.x * t.Scale.x;
             float h = (float)glyph.size.y * t.Scale.y;
@@ -561,7 +575,7 @@ void nimo::SceneRenderer::Render(std::shared_ptr<FrameBuffer> target, const Came
             // m_vboText->Unbind();
             // glDrawElements(GL_TRIANGLES, m_iboText->Count(), GL_UNSIGNED_INT, 0);
             x += ((glyph.advance.x >> 6) + r.characterSpacing) * t.Scale.x;
-            if(*c == '\n')
+            if (*c == '\n')
             {
                 y -= (r.font->lineSpacing >> 6) * t.Scale.y;
                 x = 0.0f;
@@ -569,10 +583,10 @@ void nimo::SceneRenderer::Render(std::shared_ptr<FrameBuffer> target, const Came
         }
     });
 
-    glEnable(GL_DEPTH_TEST);  
+    glEnable(GL_DEPTH_TEST);
     // glDepthMask(GL_TRUE);  
-    glDisable(GL_BLEND);  
+    glDisable(GL_BLEND);
     m_geometry2DFrameTimer.Stop();
-    m_totalFrameTimer.Stop();
+    m_renderFrameTimer.Stop();
     m_scene = {};
 }

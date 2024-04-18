@@ -15,4 +15,3 @@ struct ChangeNameModalWindow{
 };
 
 void ShowAssetsMenu(const std::filesystem::path& root, ChangeNameModalWindow& modal);
-
