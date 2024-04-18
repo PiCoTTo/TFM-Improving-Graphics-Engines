@@ -2,17 +2,22 @@
 #include "imgui.h"
 #include "EditorLayer.h"
 #include "input/Input.h"
+#include "core/Log.h"
 
 void SceneViewPanel::OnRender(float deltaTime)
 {
-    if(!m_editor->renderer) return;
-    nimo::Renderer::BeginFrame(fb);
-    for(auto scene : nimo::AssetManager::GetAllLoaded<nimo::Scene>())
+    if (!m_editor->renderer) return;
+
+    if (EditorLayer::mustRender())
     {
-        m_editor->renderer->SetScene(scene);
-        m_editor->renderer->Render(fb, {}, t);
+        nimo::Renderer::BeginFrame(fb);
+        for (auto scene : nimo::AssetManager::GetAllLoaded<nimo::Scene>())
+        {
+            m_editor->renderer->SetScene(scene);
+            m_editor->renderer->Render(fb, {}, t, deltaTime);
+        }
+        nimo::Renderer::EndFrame();
     }
-    nimo::Renderer::EndFrame();
 
     // Using a Child allow to fill all the space of the window.
     // It also alows customization
@@ -21,35 +26,35 @@ void SceneViewPanel::OnRender(float deltaTime)
     ImVec2 wsize = ImGui::GetWindowSize();
     // Because I use the texture from OpenGL, I need to invert the V from the UV.
     ImGui::Image((ImTextureID)(uint64_t)fb->GetColorAttachmentId(0), wsize, ImVec2(0, 1), ImVec2(1, 0));
-    if(ImGui::IsWindowFocused() && nimo::Input::GetKey(nimo::KeyCode::W))
+    if (ImGui::IsWindowFocused() && nimo::Input::GetKey(nimo::KeyCode::W))
     {
         t.Translation += deltaTime * 3.0f * t.GetFront();
     }
-    if(ImGui::IsWindowFocused() && nimo::Input::GetKey(nimo::KeyCode::A))
+    if (ImGui::IsWindowFocused() && nimo::Input::GetKey(nimo::KeyCode::A))
     {
         t.Translation -= deltaTime * 3.0f * t.GetRight();
     }
-    if(ImGui::IsWindowFocused() && nimo::Input::GetKey(nimo::KeyCode::S))
+    if (ImGui::IsWindowFocused() && nimo::Input::GetKey(nimo::KeyCode::S))
     {
         t.Translation -= deltaTime * 3.0f * t.GetFront();
     }
-    if(ImGui::IsWindowFocused() && nimo::Input::GetKey(nimo::KeyCode::D))
+    if (ImGui::IsWindowFocused() && nimo::Input::GetKey(nimo::KeyCode::D))
     {
         t.Translation += deltaTime * 3.0f * t.GetRight();
     }
-    if(ImGui::IsWindowFocused() && nimo::Input::GetKey(nimo::KeyCode::Space))
+    if (ImGui::IsWindowFocused() && nimo::Input::GetKey(nimo::KeyCode::Space))
     {
         t.Translation.y += deltaTime * 3.0f;
     }
-    if(ImGui::IsWindowFocused() && nimo::Input::GetKey(nimo::KeyCode::LeftControl))
+    if (ImGui::IsWindowFocused() && nimo::Input::GetKey(nimo::KeyCode::LeftControl))
     {
         t.Translation.y -= deltaTime * 3.0f;
     }
-    if(ImGui::IsWindowFocused() && nimo::Input::GetKey(nimo::KeyCode::Q))
+    if (ImGui::IsWindowFocused() && nimo::Input::GetKey(nimo::KeyCode::Q))
     {
         t.Rotation.y -= deltaTime * 50.0f;
     }
-    if(ImGui::IsWindowFocused() && nimo::Input::GetKey(nimo::KeyCode::E))
+    if (ImGui::IsWindowFocused() && nimo::Input::GetKey(nimo::KeyCode::E))
     {
         t.Rotation.y += deltaTime * 50.0f;
     }
