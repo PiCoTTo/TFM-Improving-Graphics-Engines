@@ -1,6 +1,7 @@
 #include "ProjectSerializer.h"
 #include "json.hpp"
 #include <fstream>
+#include "core/Log.h"
 
 nimo::ProjectSerializer::ProjectSerializer(const std::shared_ptr<Project>& project)
     : m_project(project)
@@ -21,6 +22,12 @@ void nimo::ProjectSerializer::Serialize(const std::filesystem::path& filepath)
 bool nimo::ProjectSerializer::Deserialize(const std::filesystem::path& filepath)
 {
     std::ifstream ifs(filepath);
+    if (!ifs.good())
+    {
+        NIMO_ERROR("Error loading project file: {}", filepath.string().c_str());
+        return false;
+    }
+
     nlohmann::ordered_json j;
     j << ifs;
     m_project->m_settings.name = j["Name"];

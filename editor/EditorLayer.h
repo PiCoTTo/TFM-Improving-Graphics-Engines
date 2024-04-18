@@ -24,6 +24,9 @@
 #include "nfd.h"
 #include "UIHelpers.h"
 #include "LogPanel.h"
+#include "Subject.h"
+#include "PreferencesWindow.h"
+#include "core/Timer.h"
 
 class GameViewPanel;
 class SceneContentsPanel;
@@ -32,25 +35,13 @@ class AssetExplorerPanel;
 class SceneViewPanel;
 class RendererDebugPanel;
 
-class EditorLayer : public nimo::Layer
+class EditorLayer : public nimo::Layer, public Subject<EditorLayer>
 {
 public:
-    EditorLayer(): newNameModal("New Name"){
-        assetIcons[nimo::AssetType::None] = std::make_shared<nimo::Texture>("icons/icon_file.png");
-        assetIcons[nimo::AssetType::Texture] = std::make_shared<nimo::Texture>("icons/icon_camera.png");
-        assetIcons[nimo::AssetType::Mesh] = std::make_shared<nimo::Texture>("icons/icon_cube.png");
-        assetIcons[nimo::AssetType::Shader] = std::make_shared<nimo::Texture>("icons/icon_polaroid.png");
-        assetIcons[nimo::AssetType::Material] = std::make_shared<nimo::Texture>("icons/icon_paintroll.png");
-        assetIcons[nimo::AssetType::Scene] = std::make_shared<nimo::Texture>("icons/icon_castle.png");
-        assetIcons[nimo::AssetType::EnvironmentMap] = std::make_shared<nimo::Texture>("icons/icon_picture.png");
-        assetIcons[nimo::AssetType::Script] = std::make_shared<nimo::Texture>("icons/icon_gears.png");
-        assetIcons[nimo::AssetType::Prefab] = std::make_shared<nimo::Texture>("icons/icon_box.png");
-        assetIcons[nimo::AssetType::Audio] = std::make_shared<nimo::Texture>("icons/icon_audio_wave.png");
-        assetIcons[nimo::AssetType::Font] = std::make_shared<nimo::Texture>("icons/icon_signature.png");
-    }
+    EditorLayer();
     ~EditorLayer()
     {
-        delete gameViewPanel;
+        //delete gameViewPanel;
         delete inspectorPanel;
         delete sceneContentsPanel;
         delete assetExplorerPanel;
@@ -58,6 +49,12 @@ public:
         delete rendererDebugPanel;
         delete logPanel;
     }
+
+    static const float FPS_LIMIT;
+    static bool mustRender() { return m_mustRender; }
+
+    void openProject(nfdchar_t* path);
+
 private:
     friend class GameViewPanel;
     friend class SceneContentsPanel;
@@ -70,20 +67,33 @@ private:
     std::shared_ptr<nimo::SceneRenderer> renderer;
 
     LogPanel* logPanel;
-    GameViewPanel* gameViewPanel;
+    //GameViewPanel* gameViewPanel;
+    std::shared_ptr<GameViewPanel> gameViewPanel;
     SceneViewPanel* sceneViewPanel;
     InspectorPanel* inspectorPanel;
     SceneContentsPanel* sceneContentsPanel;
     AssetExplorerPanel* assetExplorerPanel;
     RendererDebugPanel* rendererDebugPanel;
+
     nimo::GUID lastModifiedScene;
     ChangeNameModalWindow newNameModal;
 
+    inline static Preferences preferences;
+    std::shared_ptr<PreferencesController> preferencesController;
+    PreferencesWindow* preferencesWindow;
+
     std::map<nimo::AssetType, std::shared_ptr<nimo::Texture>> assetIcons;
+
+    float m_cumulativeFrameTime = 1 / FPS_LIMIT;
+    static bool m_mustRender;
+
+    bool m_showPreferencesWindow = 0;
 
     void OnAttach() override;
     void OnUpdate(float deltaTime) override;
 
     void CreateNewProject(const std::filesystem::path& folder, const std::string& name);
     std::shared_ptr<nimo::Texture> entityIcon;
+
+    void showPreferencesWindow();
 };
