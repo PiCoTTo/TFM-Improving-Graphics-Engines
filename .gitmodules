@@ -1,6 +1,6 @@
 [submodule "third_party"]
 	path = third_party
-	url = G:\\Master Videojuegos\\TFM\\Improving Graphics Engines\\third_party
+url=https://github.com/PiCoTTo/TFM-third_party
 [submodule "res"]
 	path = res
-	url = G:\\Master Videojuegos\\TFM\\Improving Graphics Engines\\res
+url=https://github.com/PiCoTTo/TFM-res
