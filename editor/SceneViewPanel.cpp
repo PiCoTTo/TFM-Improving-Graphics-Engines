@@ -6,15 +6,15 @@
 
 void SceneViewPanel::OnRender(float deltaTime)
 {
-    if (!m_editor->renderer) return;
+    if (!m_renderer) return;
 
     if (EditorLayer::mustRender())
     {
         nimo::Renderer::BeginFrame(fb);
         for (auto scene : nimo::AssetManager::GetAllLoaded<nimo::Scene>())
         {
-            m_editor->renderer->SetScene(scene);
-            m_editor->renderer->Render(fb, {}, t, deltaTime);
+            m_editor->m_sceneViewRenderer->SetScene(scene);
+            m_editor->m_sceneViewRenderer->Render(fb, {}, t, deltaTime);
         }
         nimo::Renderer::EndFrame();
     }

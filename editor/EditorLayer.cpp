@@ -18,6 +18,7 @@
 
 
 const float EditorLayer::FPS_LIMIT = 60.f;
+const float EditorLayer::GLOBAL_FPS_LIMIT = 120.f;
 bool EditorLayer::m_mustRender = false;
 
 EditorLayer::EditorLayer() :
@@ -54,7 +55,7 @@ void EditorLayer::OnAttach()
     sceneContentsPanel = new SceneContentsPanel(this);
     inspectorPanel = new InspectorPanel(this);
     assetExplorerPanel = new AssetExplorerPanel(this);
-    rendererDebugPanel = new RendererDebugPanel();
+    rendererDebugPanel = new RendererDebugPanel(gameViewPanel);
 
     auto& style = ImGui::GetStyle();
     auto& colors = ImGui::GetStyle().Colors;
@@ -406,7 +407,6 @@ void EditorLayer::OnUpdate(float deltaTime)
     if (EditorLayer::preferences.limitFPS_AppInDev)
     {
         m_cumulativeFrameTime += deltaTime;
-        NIMO_DEBUG("{}", m_cumulativeFrameTime);
 
         if (m_cumulativeFrameTime < 1 / EditorLayer::FPS_LIMIT)
         {
@@ -673,9 +673,11 @@ void EditorLayer::CreateNewProject(const std::filesystem::path& folder, const st
         lastModifiedScene = nimo::AssetManager::Get<nimo::Scene>("Scenes/NewScene.nscene")->id;
         NIMO_DEBUG("Serialized Project {}", settings.name);
         rendererDebugPanel->SetRenderer({});
-        renderer = std::make_shared<nimo::SceneRenderer>();
-        rendererDebugPanel->SetRenderer(renderer);
-        rendererDebugPanel->SetGameViewPanel(gameViewPanel);
+        m_sceneViewRenderer = std::make_shared<nimo::SceneRenderer>();
+        sceneViewPanel->setRenderer(m_sceneViewRenderer);
+        m_gameViewRenderer = std::make_shared<nimo::SceneRenderer>();
+        gameViewPanel->setRenderer(m_gameViewRenderer);
+        rendererDebugPanel->SetRenderer(m_gameViewRenderer);
     }
     else {
         NIMO_ERROR("Error Creating directory {}", projectFolderPath.string());
@@ -697,7 +699,11 @@ void EditorLayer::openProject(nfdchar_t* path)
     lastModifiedScene = startingSceneId;
     nimo::AssetManager::UnloadUnused();
     rendererDebugPanel->SetRenderer({});
-    renderer = std::make_shared<nimo::SceneRenderer>();
-    rendererDebugPanel->SetRenderer(renderer);
-    rendererDebugPanel->SetGameViewPanel(gameViewPanel);
+
+    m_sceneViewRenderer = std::make_shared<nimo::SceneRenderer>();
+    sceneViewPanel->setRenderer(m_sceneViewRenderer);
+
+    m_gameViewRenderer = std::make_shared<nimo::SceneRenderer>();
+    gameViewPanel->setRenderer(m_gameViewRenderer);
+    rendererDebugPanel->SetRenderer(m_gameViewRenderer);
 }

@@ -220,18 +220,27 @@ void nimo::SceneRenderer::SetScene(std::shared_ptr<Scene> scene)
 }
 void nimo::SceneRenderer::Render(std::shared_ptr<FrameBuffer> target, const CameraComponent& cameraSettings, const TransformComponent& cameraTransform, float deltaTime)
 {
-    //// If FPS is limited for the current project
-    //if (nimo::Project::GetActiveProject()->GetSettings().limitFPS)
-    //{
-    //    m_cumulativeFrameTime += deltaTime;
+    bool mustRender = true;
+    // If FPS is limited for the current project
+    if (limitFPS)
+    {
+        m_cumulativeFrameTime += deltaTime;
 
-    //    if (m_cumulativeFrameTime < 1 / 60.f)
-    //    {
-    //        return;
-    //    }
+        if (m_cumulativeFrameTime < 1 / FPS_LIMIT)
+        {
+            mustRender = false;
+        }
+        else
+            m_cumulativeFrameTime = 0;
+    }
 
-    //    m_cumulativeFrameTime = 0;
-    //}
+    if (!mustRender)
+        return;
+
+    // Performance metrics
+    m_frameTimer.Stop();
+    m_frameTime = m_frameTimer.ElapsedMillis();
+    m_frameTimer.Reset();
 
     m_renderFrameTimer.Reset();
     glViewport(0, 0, target ? target->GetDetails().width : Application::Instance().GetWindow().GetWidth(), target ? target->GetDetails().height : Application::Instance().GetWindow().GetHeight());

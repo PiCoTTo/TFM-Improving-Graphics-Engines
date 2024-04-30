@@ -9,11 +9,11 @@
 class RendererDebugPanel : public EditorPanel
 {
 public:
-    RendererDebugPanel() : EditorPanel("Renderer Debug") {
+    RendererDebugPanel(std::shared_ptr<GameViewPanel> gameViewPanel) : EditorPanel("Renderer Debug"), m_gameViewPanel(gameViewPanel) {
         frameTimes.reserve(1500);
     }
-    void SetRenderer(std::shared_ptr<nimo::SceneRenderer> r) { renderer = r; }
-    void SetGameViewPanel(std::shared_ptr<GameViewPanel> gvp) { m_gameViewPanel = gvp; }
+
+    void SetRenderer(std::shared_ptr<nimo::SceneRenderer> renderer) { m_renderer = renderer; }
 
 private:
     nimo::RendererStats m_displayedStats;
@@ -21,7 +21,7 @@ private:
     float m_timeDebugRefresh = 0;   // Time elapsed since last debug stats update
 
     std::vector<float> frameTimes;
-    std::shared_ptr<nimo::SceneRenderer> renderer;
+    std::shared_ptr<nimo::SceneRenderer> m_renderer;
     std::shared_ptr<GameViewPanel> m_gameViewPanel;
     void OnRender(float deltaTime);
 };

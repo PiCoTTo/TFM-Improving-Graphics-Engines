@@ -11,9 +11,24 @@ namespace nimo
     public:
         SceneRenderer();
         ~SceneRenderer();
+
+        bool limitFPS = false;
+
+        inline float currentFrameTime() const
+        {
+            return m_frameTime;
+        }
+
+        inline float currentFPS() const
+        {
+            return 1000 / m_frameTime;
+        }
+
         void SetScene(std::shared_ptr<Scene> scene);
         void Render(std::shared_ptr<FrameBuffer> target = {}, const CameraComponent& cameraSettings = {}, const TransformComponent& cameraTransform = {}, float deltaTime = 0);
     public:
+        Timer m_frameTimer;
+        float m_frameTime;
         Timer m_renderFrameTimer;
         Timer m_bloomFrameTimer;
         Timer m_geometryFrameTimer;
@@ -51,5 +66,8 @@ namespace nimo
         VertexArray* m_vaoText = nullptr;
         VertexBuffer* m_vboText = nullptr;
         IndexBuffer* m_iboText = nullptr;
+
+        const float FPS_LIMIT = 60.f;
+        float m_cumulativeFrameTime = 1 / FPS_LIMIT;
     };
 } // namespace nimo

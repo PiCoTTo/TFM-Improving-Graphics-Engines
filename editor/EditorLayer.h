@@ -41,7 +41,6 @@ public:
     EditorLayer();
     ~EditorLayer()
     {
-        //delete gameViewPanel;
         delete inspectorPanel;
         delete sceneContentsPanel;
         delete assetExplorerPanel;
@@ -51,6 +50,7 @@ public:
     }
 
     static const float FPS_LIMIT;
+    static const float GLOBAL_FPS_LIMIT;
     static bool mustRender() { return m_mustRender; }
 
     void openProject(nfdchar_t* path);
@@ -64,10 +64,10 @@ private:
 
     nimo::FrameBuffer::Details d;
     std::shared_ptr<nimo::FrameBuffer> fb;
-    std::shared_ptr<nimo::SceneRenderer> renderer;
+    std::shared_ptr<nimo::SceneRenderer> m_sceneViewRenderer;
+    std::shared_ptr<nimo::SceneRenderer> m_gameViewRenderer;
 
     LogPanel* logPanel;
-    //GameViewPanel* gameViewPanel;
     std::shared_ptr<GameViewPanel> gameViewPanel;
     SceneViewPanel* sceneViewPanel;
     InspectorPanel* inspectorPanel;
@@ -85,6 +85,7 @@ private:
     std::map<nimo::AssetType, std::shared_ptr<nimo::Texture>> assetIcons;
 
     float m_cumulativeFrameTime = 1 / FPS_LIMIT;
+    float m_cumulativeGlobalFrameTime = 1 / GLOBAL_FPS_LIMIT;
     static bool m_mustRender;
 
     bool m_showPreferencesWindow = 0;
@@ -94,6 +95,4 @@ private:
 
     void CreateNewProject(const std::filesystem::path& folder, const std::string& name);
     std::shared_ptr<nimo::Texture> entityIcon;
-
-    void showPreferencesWindow();
 };
