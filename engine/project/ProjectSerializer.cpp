@@ -17,7 +17,7 @@ void nimo::ProjectSerializer::Serialize(const std::filesystem::path& filepath)
     j["ModulesDirectory"] = m_project->m_settings.modulesDirectory;
     j["StartScene"] = m_project->m_settings.startScene;
     std::ofstream ofs(filepath);
-    ofs << j;
+    ofs << j.dump(1, '\t');
 }
 bool nimo::ProjectSerializer::Deserialize(const std::filesystem::path& filepath)
 {

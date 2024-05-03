@@ -33,7 +33,7 @@ void nimo::AssetSerializer<nimo::Scene>::Serialize(const AssetMetadata& metadata
     if(nimo::Project::GetActiveProject())
         p = nimo::Project::GetActiveProject()->GetAssetsFolderPath();
     std::ofstream ofs(p/metadata.filepath);
-    ofs << j;   
+    ofs << j.dump(1, '\t');
 }
 std::shared_ptr<nimo::Scene> nimo::AssetSerializer<nimo::Scene>::Deserialize(const nimo::AssetMetadata& metadata)
 {
