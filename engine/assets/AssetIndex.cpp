@@ -17,7 +17,7 @@ const nimo::AssetMetadata& nimo::AssetIndex::get(const std::filesystem::path& pa
         if (metadata.filepath == path)
             return metadata;
     }
-    return AssetMetadata();
+    return m_emptyAssetMetadata;
 }
 
 bool nimo::AssetIndex::contains(const AssetId id) const

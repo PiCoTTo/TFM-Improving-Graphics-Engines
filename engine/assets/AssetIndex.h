@@ -24,5 +24,7 @@ public:
     auto end() const { return m_db.cend(); }
 private:
     std::unordered_map<AssetId, AssetMetadata> m_db;
+
+    AssetMetadata m_emptyAssetMetadata;
 };
 } // namespace nimo

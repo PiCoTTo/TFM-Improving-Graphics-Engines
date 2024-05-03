@@ -132,6 +132,8 @@ public:
 	static void UnloadUnused();
 
 private:
+	static AssetMetadata m_emptyAssetMetadata;
+
 	static AssetMetadata& GetMetadataRef(AssetId handle);
 	static std::shared_ptr<IAssetSettings> CreateAssetSettings(AssetType type);
 

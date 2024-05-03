@@ -197,6 +197,8 @@ const nimo::AssetMetadata& nimo::AssetManager::GetMetadata(nimo::AssetId id)
     return m_index[id];
 }
 
+nimo::AssetMetadata nimo::AssetManager::m_emptyAssetMetadata;
+
 const nimo::AssetMetadata& nimo::AssetManager::GetMetadata(const std::filesystem::path& path)
 {
     const auto relativePath = GetRelativePath(path);
@@ -207,7 +209,7 @@ const nimo::AssetMetadata& nimo::AssetManager::GetMetadata(const std::filesystem
             return metadata;
     }
 
-    return {};
+    return m_emptyAssetMetadata;
 }
 
 std::filesystem::path nimo::AssetManager::GetRelativePath(const std::filesystem::path& filepath)
