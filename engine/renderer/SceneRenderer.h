@@ -3,6 +3,7 @@
 #include "EnvironmentMap.h"
 #include "core/Timer.h"
 #include "fonts/Font.h"
+#include "renderer/RenderPass.h"
 
 namespace nimo
 {
@@ -22,6 +23,11 @@ namespace nimo
         inline float currentFPS() const
         {
             return 1000 / m_frameTime;
+        }
+
+        inline bool mustRender() const
+        {
+            return m_mustRender;
         }
 
         void SetScene(std::shared_ptr<Scene> scene);
@@ -69,5 +75,6 @@ namespace nimo
 
         const float FPS_LIMIT = 60.f;
         float m_cumulativeFrameTime = 1 / FPS_LIMIT;
+        bool m_mustRender{ true };
     };
 } // namespace nimo

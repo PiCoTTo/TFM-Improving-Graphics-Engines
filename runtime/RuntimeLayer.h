@@ -13,4 +13,6 @@ public:
 private:
     std::shared_ptr<nimo::SceneRenderer> renderer;
     std::filesystem::path projectFilepath;
+
+    std::vector<std::shared_ptr<RenderPass>> m_renderPasses;
 };

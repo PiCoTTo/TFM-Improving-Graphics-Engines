@@ -220,7 +220,7 @@ void nimo::SceneRenderer::SetScene(std::shared_ptr<Scene> scene)
 }
 void nimo::SceneRenderer::Render(std::shared_ptr<FrameBuffer> target, const CameraComponent& cameraSettings, const TransformComponent& cameraTransform, float deltaTime)
 {
-    bool mustRender = true;
+    m_mustRender = true;
     // If FPS is limited for the current project
     if (limitFPS)
     {
@@ -228,14 +228,16 @@ void nimo::SceneRenderer::Render(std::shared_ptr<FrameBuffer> target, const Came
 
         if (m_cumulativeFrameTime < 1 / FPS_LIMIT)
         {
-            mustRender = false;
+            m_mustRender = false;
         }
         else
             m_cumulativeFrameTime = 0;
     }
 
-    if (!mustRender)
+    if (!m_mustRender)
         return;
+
+    nimo::Renderer::BeginFrame();
 
     // Performance metrics
     m_frameTimer.Stop();
