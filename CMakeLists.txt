@@ -108,3 +108,4 @@ target_link_libraries(assimp INTERFACE ${CMAKE_SOURCE_DIR}/third_party/freetype2
 add_subdirectory(${CMAKE_SOURCE_DIR}/engine)
 add_subdirectory(${CMAKE_SOURCE_DIR}/editor)
 add_subdirectory(${CMAKE_SOURCE_DIR}/runtime)
+add_subdirectory(${CMAKE_SOURCE_DIR}/tools)
