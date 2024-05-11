@@ -1,7 +1,8 @@
 set(INCLUDES 
+${CMAKE_CURRENT_SOURCE_DIR}
 )
 set(SOURCES 
-${CMAKE_CURRENT_SOURCE_DIR}nimo_scene_multiplier.cpp 
+${CMAKE_CURRENT_SOURCE_DIR}/nimo_scene_multiplier.cpp 
 )
 set(LIBS
 nimo_engine
