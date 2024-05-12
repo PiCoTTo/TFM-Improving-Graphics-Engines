@@ -4,10 +4,14 @@
 #include "imgui.h"
 #include <imgui_impl_opengl3.h>
 #include <imgui_impl_glfw.h>
+#include "input/Input.h"
 
 
 void nimo::DebugPass::update(float deltaTime)
 {
+    if (nimo::Input::GetKey(nimo::KeyCode::LeftAlt) && nimo::Input::GetKeyPressed(nimo::KeyCode::D))
+        m_statsViewEnabled = !m_statsViewEnabled;
+
     m_currentTime += deltaTime;
     m_timeDebugRefresh += deltaTime;
     if (m_timeDebugRefresh > 1.f / m_refreshRate)
@@ -46,18 +50,29 @@ void nimo::DebugPass::render()
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
-	
-    ImGui::SetNextWindowSize(ImVec2(400, 300), ImGuiCond_FirstUseEver);
 
-    ImGui::Begin("Stats", &m_statsViewEnabled, ImGuiWindowFlags_NoCollapse);
+    if (m_statsViewEnabled)
+    {
+        ImGui::SetNextWindowSize(ImVec2(400, 300), ImGuiCond_FirstUseEver);
 
-    ImGui::Text("Render stats");
-    ImGui::TextDisabled("Draw calls: %d", nimo::Renderer::stats.totalDrawCalls);
-    ImGui::TextDisabled("Triangle count: %d", nimo::Renderer::stats.totalTriangles);
-    ImGui::Text("FPS: %.2f", m_displayedStats.frameTime > 0 ? 1000.f / m_displayedStats.frameTime : 0);
-    ImGui::Text("Last frame time: %.3f ms", m_displayedStats.frameTime);
+        ImGui::Begin("Stats", &m_statsViewEnabled, ImGuiWindowFlags_NoCollapse);
 
-    ImGui::End();
+        ImGui::Text("Render stats");
+        ImGui::TextDisabled("Draw calls: %d", nimo::Renderer::stats.totalDrawCalls);
+        ImGui::TextDisabled("Triangle count: %d", nimo::Renderer::stats.totalTriangles);
+        ImGui::Text("FPS: %.2f", m_displayedStats.frameTime > 0 ? 1000.f / m_displayedStats.frameTime : 0);
+        ImGui::Text("Last frame time: %.3f ms", m_displayedStats.frameTime);
+
+        ImGui::End();
+    }
+
+    if (m_exportedVariablesViewEnabled)
+    {
+    }
+
+    if (m_shadersEditorViewEnabled)
+    {
+    }
 
     ImGui::Render();
 
