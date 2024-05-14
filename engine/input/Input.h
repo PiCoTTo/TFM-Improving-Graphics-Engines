@@ -22,9 +22,14 @@ namespace nimo {
 		static std::pair<float, float> GetMousePosition();
 		static std::pair<double, double> GetMouseScroll();
         //Key
+		// Returns whether the specified key is currently pressed
 		static bool GetKey(KeyCode keycode);
-        static bool GetKeyPressed(KeyCode k);
-        static bool GetKeyReleased(KeyCode k);	
+		// Returns whether the specified key is currently pressed. Alternative version managed directly from this Input class.
+        static bool GetKeyPressed(KeyCode keycode);
+		// Returns whether the specified key has been pressed since the last frame
+		static bool GetCurrentKeyPressed(KeyCode keycode);
+		// Returns whether the specified key has been released since the last frame
+        static bool GetKeyReleased(KeyCode keycode);
         // Cursor mode
 		static void SetCursorMode(CursorMode mode);
 		static CursorMode GetCursorMode();
@@ -32,7 +37,8 @@ namespace nimo {
 		static Input* m_instance;
         std::vector<MouseButton> m_pressedMouseButtons;
         std::vector<MouseButton> m_releasedMouseButtons;
-        std::vector<KeyCode> m_pressedKeys;
+        std::vector<KeyCode> m_lastPressedKeys;
+		std::vector<KeyCode> m_pressedKeys;
         std::vector<KeyCode> m_releasedKeys;
 		std::pair<double, double> m_mouseScroll = {0.0f, 0.0f};
 		void OnMouseButtonPressed(const MouseButtonPressedEvent& e);

@@ -12,6 +12,7 @@ void nimo::Input::Initialize()
         m_instance = new Input();
     m_instance->m_pressedMouseButtons.reserve(3);
     m_instance->m_releasedMouseButtons.reserve(3);
+    m_instance->m_lastPressedKeys.reserve(10);
     m_instance->m_pressedKeys.reserve(10);
     m_instance->m_releasedKeys.reserve(10);
     EventManager::Subscribe(m_instance, &OnKeyPressed);
@@ -33,7 +34,7 @@ void nimo::Input::Update()
 {
     m_instance->m_pressedMouseButtons.clear();
     m_instance->m_releasedMouseButtons.clear();
-    m_instance->m_pressedKeys.clear();
+    m_instance->m_lastPressedKeys.clear();
     m_instance->m_releasedKeys.clear();
     m_instance->m_mouseScroll = {0.0, 0.0};
 }
@@ -77,13 +78,17 @@ bool nimo::Input::GetKey(KeyCode keycode)
     int state = glfwGetKey(static_cast<GLFWwindow*>(window.GetNativeHandle()), static_cast<int32_t>(keycode));
     return state == GLFW_PRESS || state == GLFW_REPEAT;
 }
-bool nimo::Input::GetKeyPressed(KeyCode k)
+bool nimo::Input::GetKeyPressed(KeyCode keycode)
 {
-    return std::find(m_instance->m_pressedKeys.begin(), m_instance->m_pressedKeys.end(), k) != m_instance->m_pressedKeys.end();
+    return std::find(m_instance->m_lastPressedKeys.begin(), m_instance->m_lastPressedKeys.end(), keycode) != m_instance->m_lastPressedKeys.end();
 }
-bool nimo::Input::GetKeyReleased(KeyCode k)
+bool nimo::Input::GetCurrentKeyPressed(KeyCode keycode)
 {
-    return std::find(m_instance->m_releasedKeys.begin(), m_instance->m_releasedKeys.end(), k) != m_instance->m_releasedKeys.end();
+    return std::find(m_instance->m_pressedKeys.begin(), m_instance->m_pressedKeys.end(), keycode) != m_instance->m_pressedKeys.end();
+}
+bool nimo::Input::GetKeyReleased(KeyCode keycode)
+{
+    return std::find(m_instance->m_releasedKeys.begin(), m_instance->m_releasedKeys.end(), keycode) != m_instance->m_releasedKeys.end();
 }
 void nimo::Input::SetCursorMode(CursorMode mode)
 {
@@ -110,9 +115,19 @@ void nimo::Input::OnMouseScroll(const MouseScrollEvent& e)
 }
 void nimo::Input::OnKeyPressed(const KeyPressedEvent& e)
 {
-    m_pressedKeys.push_back((KeyCode)e.key);
+    m_lastPressedKeys.push_back((KeyCode)e.key);
+
+    const auto& keyFound = std::find(m_pressedKeys.begin(), m_pressedKeys.end(), static_cast<KeyCode>(e.key));
+
+    if (keyFound == m_pressedKeys.end())
+        m_pressedKeys.push_back(static_cast<KeyCode>(e.key));
 }
 void nimo::Input::OnKeyReleased(const KeyReleasedEvent& e)
 {
+    const auto& keyFound = std::find(m_pressedKeys.begin(), m_pressedKeys.end(), static_cast<KeyCode>(e.key));
+
+    if (keyFound != m_pressedKeys.end())
+        m_pressedKeys.erase(keyFound);
+
     m_releasedKeys.push_back((KeyCode)e.key);
 }
