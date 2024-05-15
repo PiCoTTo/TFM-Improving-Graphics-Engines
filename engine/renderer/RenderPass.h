@@ -1,10 +1,17 @@
 #pragma once
+#include <memory>
+#include "renderer/FrameBuffer.h"
+#include "scene/Components.h"
 
-class RenderPass
+
+namespace nimo
 {
-public:
-	virtual ~RenderPass() {}
+	class RenderPass
+	{
+	public:
+		virtual ~RenderPass() {}
 
-	virtual void update(float deltaTime) {}
-	virtual void render() {}
-};
+		virtual void update(float deltaTime = 0) {}
+		virtual void render(std::shared_ptr<FrameBuffer> target = {}, const CameraComponent& cameraSettings = {}, const TransformComponent& cameraTransform = {}, float deltaTime = 0) {}
+	};
+}

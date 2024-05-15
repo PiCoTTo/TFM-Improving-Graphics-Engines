@@ -18,13 +18,14 @@ namespace nimo
 	public:
 		DebugPass(std::shared_ptr<SceneRenderer> renderer) : m_renderer(renderer) {}
 
+		// From RenderPass
 		void update(float deltaTime) override;
-		void render() override;
+		void render(std::shared_ptr<FrameBuffer> target, const CameraComponent& cameraSettings, const TransformComponent& cameraTransform, float deltaTime) override;
 
 	private:
 		bool m_statsViewEnabled{ true };
 		bool m_exportedVariablesViewEnabled{ true };
-		bool m_shadersEditorViewEnabled{ true };
+		bool m_shadersEditorViewEnabled{ false };
 
 		std::shared_ptr<nimo::SceneRenderer> m_renderer;
 		nimo::RendererStats m_displayedStats;

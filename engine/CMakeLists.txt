@@ -7,7 +7,8 @@ ${CMAKE_CURRENT_SOURCE_DIR}/core/Entry.cpp
 ${CMAKE_CURRENT_SOURCE_DIR}/core/Window.cpp 
 ${CMAKE_CURRENT_SOURCE_DIR}/core/GUID.cpp 
 ${CMAKE_CURRENT_SOURCE_DIR}/core/Log.cpp 
-${CMAKE_CURRENT_SOURCE_DIR}/core/FileHandling.cpp 
+${CMAKE_CURRENT_SOURCE_DIR}/core/FileHandling.cpp
+${CMAKE_CURRENT_SOURCE_DIR}/core/ExportedVariablesManager.cpp
 ${CMAKE_CURRENT_SOURCE_DIR}/assets/AssetIndex.cpp 
 ${CMAKE_CURRENT_SOURCE_DIR}/assets/AssetManager.cpp 
 ${CMAKE_CURRENT_SOURCE_DIR}/assets/AssetSerializer.cpp 
@@ -26,6 +27,7 @@ ${CMAKE_CURRENT_SOURCE_DIR}/renderer/EnvironmentMap.cpp
 ${CMAKE_CURRENT_SOURCE_DIR}/renderer/Mesh.cpp 
 ${CMAKE_CURRENT_SOURCE_DIR}/renderer/SceneRenderer.cpp 
 ${CMAKE_CURRENT_SOURCE_DIR}/renderer/DebugPass.cpp 
+${CMAKE_CURRENT_SOURCE_DIR}/renderer/DeferredPass.cpp 
 ${CMAKE_CURRENT_SOURCE_DIR}/scene/Scene.cpp 
 ${CMAKE_CURRENT_SOURCE_DIR}/scene/SceneSerializer.cpp 
 ${CMAKE_CURRENT_SOURCE_DIR}/scene/SceneManager.cpp 

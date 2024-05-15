@@ -26,6 +26,7 @@ namespace nimo{
         void SetName(const std::string& newName) {m_name = newName;}
         const std::string& GetName() {return m_name;}
         Entity GetEntity(GUID id) {return {m_entities[id], m_registry};}
+        entt::registry& entitiesRegistry() { return m_registry; }
         glm::mat4 GetWorldSpaceTransformMatrix(Entity entity);
         void RequestEntityDestruction(Entity entity);
         CameraComponent GetMainCamera();

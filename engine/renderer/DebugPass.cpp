@@ -5,12 +5,20 @@
 #include <imgui_impl_opengl3.h>
 #include <imgui_impl_glfw.h>
 #include "input/Input.h"
+#include "core/ExportedVariablesManager.h"
+#include <typeindex>
 
 
 void nimo::DebugPass::update(float deltaTime)
 {
     if (nimo::Input::GetKey(nimo::KeyCode::LeftAlt) && nimo::Input::GetKeyPressed(nimo::KeyCode::D))
         m_statsViewEnabled = !m_statsViewEnabled;
+
+    if (nimo::Input::GetKey(nimo::KeyCode::LeftAlt) && nimo::Input::GetKeyPressed(nimo::KeyCode::V))
+        m_exportedVariablesViewEnabled = !m_exportedVariablesViewEnabled;
+
+    if (nimo::Input::GetKey(nimo::KeyCode::LeftAlt) && nimo::Input::GetKeyPressed(nimo::KeyCode::S))
+        m_shadersEditorViewEnabled = !m_shadersEditorViewEnabled;
 
     m_currentTime += deltaTime;
     m_timeDebugRefresh += deltaTime;
@@ -39,13 +47,13 @@ void nimo::DebugPass::update(float deltaTime)
 }
 
 
-void nimo::DebugPass::render()
+void nimo::DebugPass::render(std::shared_ptr<FrameBuffer> target, const CameraComponent& cameraSettings, const TransformComponent& cameraTransform, float deltaTime)
 {
     if (!m_renderer->mustRender())
         return;
 
 	// Stats GUI
-	if (!m_statsViewEnabled) return;
+	//if (!m_statsViewEnabled) return;
 
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplGlfw_NewFrame();
@@ -68,6 +76,67 @@ void nimo::DebugPass::render()
 
     if (m_exportedVariablesViewEnabled)
     {
+        ImGui::SetNextWindowSize(ImVec2(400, 300), ImGuiCond_FirstUseEver);
+
+        ImGui::Begin("Variables", &m_exportedVariablesViewEnabled, ImGuiWindowFlags_NoCollapse);
+
+        for (const auto& exportedVariablePair : ExportedVariablesManager::instance()->variables())
+        {
+            auto exportedVariable = exportedVariablePair.second;
+            if (exportedVariable->m_type == std::type_index(typeid(bool)))
+            {   
+                ImGui::Checkbox(exportedVariable->m_name.c_str(), static_cast<bool*>(exportedVariable->m_value));
+            }
+
+            if (exportedVariable->m_type == std::type_index(typeid(unsigned int)))
+            {
+                //ImGui::Text("Vertex");
+                //ImGui::SameLine();
+                ImGui::PushItemWidth(40.f);
+                ImGui::DragInt(exportedVariable->m_name.c_str(), static_cast<int*>(exportedVariable->m_value));
+            }
+        }
+
+        //if (typeid(i) == typeid(int))
+        //{
+        //    //ImGui::Text("Vertex");
+        //    //ImGui::SameLine();
+        //    ImGui::InputInt("##i", &i);
+        //}
+        //if (typeid(f) == typeid(float))
+        //{
+        //    //ImGui::Text("Vertex Shader");
+        //    //ImGui::SameLine();
+        //    ImGui::InputFloat("##f", &f);
+        //}
+        //if (typeid(d) == typeid(double))
+        //{
+        //    //ImGui::Text("Vertex Shader Code");
+        //    //ImGui::SameLine();
+        //    ImGui::InputDouble("##d", &d);
+        //}
+        //ImGui::NextColumn();
+        //if (typeid(i) == typeid(int))
+        //{
+        //    //ImGui::Text("Vertex");
+        //    //ImGui::SameLine();
+        //    ImGui::InputInt("##i", &i);
+        //}
+        //if (typeid(f) == typeid(float))
+        //{
+        //    //ImGui::Text("Vertex Shader");
+        //    //ImGui::SameLine();
+        //    ImGui::InputFloat("##f", &f);
+        //}
+        //if (typeid(d) == typeid(double))
+        //{
+        //    //ImGui::Text("Vertex Shader Code");
+        //    //ImGui::SameLine();
+        //    ImGui::InputDouble("##d", &d);
+        //}
+
+
+        ImGui::End();
     }
 
     if (m_shadersEditorViewEnabled)

@@ -7,6 +7,14 @@
 
 namespace nimo
 {
+    struct SceneInfo
+    {
+        glm::mat4 projectionMatrix;
+        glm::mat4 orthoMatrix;
+        glm::mat4 viewMatrix;
+        glm::mat4 modelMatrix;
+    };
+
     class SceneRenderer
     {
     public:
@@ -31,6 +39,7 @@ namespace nimo
         }
 
         void SetScene(std::shared_ptr<Scene> scene);
+        void update(float deltaTime = 0);
         void Render(std::shared_ptr<FrameBuffer> target = {}, const CameraComponent& cameraSettings = {}, const TransformComponent& cameraTransform = {}, float deltaTime = 0);
     public:
         Timer m_frameTimer;
@@ -76,5 +85,9 @@ namespace nimo
         const float FPS_LIMIT = 60.f;
         float m_cumulativeFrameTime = 1 / FPS_LIMIT;
         bool m_mustRender{ true };
+        unsigned int m_renderEntitiesLimit{ 5 };
+
+        std::vector<std::shared_ptr<nimo::RenderPass>> m_renderPasses;
+        std::shared_ptr<SceneRenderer> m_renderer;
     };
 } // namespace nimo
