@@ -10,6 +10,8 @@ namespace nimo {
         int totalTriangles = 0;
         int totalDrawCalls = 0;
         float frameTime = 0;
+        float maximumFrameTime = 0;
+        float averageFrameTime = 0;
         float renderFrameTime = 0;
         float geometryFrameTime = 0;
         float lightingFrameTime = 0;

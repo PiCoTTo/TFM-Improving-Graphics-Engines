@@ -29,6 +29,7 @@ namespace nimo
 
 		std::shared_ptr<nimo::SceneRenderer> m_renderer;
 		nimo::RendererStats m_displayedStats;
+		double m_frameTimeSamplesSum = 0;
 		int m_refreshRate = 2;  // Stats display update frequency (times/sec)
 		float m_timeDebugRefresh = 0;   // Time elapsed since last debug stats update
 		float m_currentTime = 0;

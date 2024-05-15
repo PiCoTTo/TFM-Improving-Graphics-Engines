@@ -26,6 +26,8 @@ void nimo::DebugPass::update(float deltaTime)
     {
         //m_displayedStats.frameTime = m_gameViewPanel->getFrameTime();
         m_displayedStats.frameTime = m_renderer->currentFrameTime();
+        if(m_currentTime > 2)
+            m_displayedStats.maximumFrameTime = std::max(m_displayedStats.maximumFrameTime, m_displayedStats.frameTime);
         m_displayedStats.renderFrameTime = m_renderer->m_renderFrameTimer.ElapsedMillis();
         m_displayedStats.geometryFrameTime = m_renderer->m_geometryFrameTimer.ElapsedMillis();
         m_displayedStats.lightingFrameTime = m_renderer->m_lightingFrameTimer.ElapsedMillis();
@@ -39,6 +41,10 @@ void nimo::DebugPass::update(float deltaTime)
             m_displayedStats.frameTime > 0 ? 1000.f / m_displayedStats.frameTime : 0,
             m_displayedStats.renderFrameTime 
             });
+
+        m_frameTimeSamplesSum += m_displayedStats.frameTime;
+
+        m_displayedStats.averageFrameTime = m_frameTimeSamplesSum / m_samples.size();
 
         // Periodically dump the records to CSV
 
@@ -69,6 +75,8 @@ void nimo::DebugPass::render(std::shared_ptr<FrameBuffer> target, const CameraCo
         ImGui::TextDisabled("Draw calls: %d", nimo::Renderer::stats.totalDrawCalls);
         ImGui::TextDisabled("Triangle count: %d", nimo::Renderer::stats.totalTriangles);
         ImGui::Text("FPS: %.2f", m_displayedStats.frameTime > 0 ? 1000.f / m_displayedStats.frameTime : 0);
+        ImGui::Text("Avg FPS: %.2f", m_displayedStats.averageFrameTime > 0 ? 1000.f / m_displayedStats.averageFrameTime : 0);
+        ImGui::Text("Min FPS: %.2f", m_displayedStats.maximumFrameTime > 0 ? 1000.f / m_displayedStats.maximumFrameTime : 0);
         ImGui::Text("Last frame time: %.3f ms", m_displayedStats.frameTime);
 
         ImGui::End();
