@@ -14,7 +14,7 @@ void RuntimeLayer::OnAttach()
     nimo::AssetId startingSceneId = nimo::AssetId(nimo::Project::GetActiveProject()->GetSettings().startScene);
     NIMO_DEBUG("Loading scene {}", nimo::Project::GetActiveProject()->GetSettings().startScene);
     nimo::SceneManager::LoadScene(startingSceneId);
-    renderer = std::make_shared<nimo::SceneRenderer>();
+    renderer = std::make_shared<nimo::SceneRenderer>(true);
 }
   
 void RuntimeLayer::OnUpdate(float deltaTime)

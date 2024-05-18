@@ -18,10 +18,11 @@ namespace nimo
     class SceneRenderer
     {
     public:
-        SceneRenderer();
+        SceneRenderer(bool enableDebug = false);
         ~SceneRenderer();
 
         bool limitFPS = false;
+        bool m_enabledDebug = false;
 
         inline float currentFrameTime() const
         {
@@ -85,7 +86,7 @@ namespace nimo
         const float FPS_LIMIT = 60.f;
         float m_cumulativeFrameTime = 1 / FPS_LIMIT;
         bool m_mustRender{ true };
-        unsigned int m_renderEntitiesLimit{ 5 };
+        unsigned int m_renderEntitiesLimit{ 724 };
 
         std::vector<std::shared_ptr<nimo::RenderPass>> m_renderPasses;
         std::shared_ptr<SceneRenderer> m_renderer;

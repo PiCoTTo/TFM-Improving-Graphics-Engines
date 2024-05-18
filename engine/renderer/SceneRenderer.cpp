@@ -87,7 +87,8 @@ void renderCube2()
     glDrawArrays(GL_TRIANGLES, 0, 36);
     glBindVertexArray(0);
 }
-nimo::SceneRenderer::SceneRenderer()
+nimo::SceneRenderer::SceneRenderer(bool enableDebug) :
+    m_enabledDebug(enableDebug)
 {
     ExportedVariablesManager::instance()->addVariable("RENDERER_LIMIT_FPS", limitFPS);
     ExportedVariablesManager::instance()->addVariable("RENDERER_ENTITIES_LIMIT", m_renderEntitiesLimit);
@@ -179,7 +180,8 @@ nimo::SceneRenderer::SceneRenderer()
 
     m_renderer.reset(this);
     m_renderPasses.push_back(std::make_shared<nimo::DeferredPass>(m_renderer));
-    m_renderPasses.push_back(std::make_shared<nimo::DebugPass>(m_renderer));
+    if(m_enabledDebug)
+        m_renderPasses.push_back(std::make_shared<nimo::DebugPass>(m_renderer));
 
     //White texture in memory
     unsigned int whitePixel = 0xFFFFFFFF;
