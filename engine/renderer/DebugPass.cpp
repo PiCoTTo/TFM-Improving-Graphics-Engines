@@ -28,6 +28,11 @@ namespace nimo
         if (nimo::Input::GetKey(nimo::KeyCode::LeftAlt) && nimo::Input::GetKeyPressed(nimo::KeyCode::S))
             m_shadersEditorViewEnabled = !m_shadersEditorViewEnabled;
 
+        m_renderer->m_scene->entitiesRegistry().view<ActiveComponent, ScriptComponent, CameraComponent>().each([&](ActiveComponent& active, ScriptComponent& script, CameraComponent& camera)
+        {
+            active.active = !m_shadersEditorViewEnabled;
+        });
+
         if(m_shadersEditorViewEnabled && nimo::Input::GetKey(nimo::KeyCode::LeftControl) && nimo::Input::GetKeyPressed(nimo::KeyCode::D8))
             applyRequested = true;
 
@@ -231,7 +236,9 @@ namespace nimo
                     //ImGui::PushItemWidth(-1);
                     ImVec2 size(1000.f, 1000.f);
                     bool changed{ false };
+                    ImGui::Text("Vertex");
                     changed = ImGui::InputTextMultiline((std::string("Vertex") + std::to_string(i)).c_str(), shader->m_shader->GetVertexCodePtr(), ImVec2(ImGui::GetContentRegionAvailWidth(), 400.f), ImGuiInputTextFlags_AllowTabInput);
+                    ImGui::Text("Fragment");
                     changed |= ImGui::InputTextMultiline((std::string("Fragment") + std::to_string(i)).c_str(), shader->m_shader->GetFragmentCodePtr(), ImVec2(ImGui::GetContentRegionAvailWidth(), 400.f), ImGuiInputTextFlags_AllowTabInput);
 
                     if (revertRequested)
