@@ -223,7 +223,7 @@ bool nimo::Shader::CheckCompileErrors(GLuint shader, const std::string& type)
             GLint maxLength = 0;
             glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &maxLength);
             // The maxLength includes the NULL character
-            std::vector<GLchar> errorLog(maxLength);
+            std::vector<GLchar> errorLog(maxLength+1);
             glGetShaderInfoLog(shader, maxLength, &maxLength, &errorLog[0]);
             NIMO_ERROR("ERROR::SHADER_COMPILATION_ERROR of type: {}\n {}", type , &errorLog[0]);
             return false;
@@ -237,7 +237,7 @@ bool nimo::Shader::CheckCompileErrors(GLuint shader, const std::string& type)
             GLint maxLength = 0;
             glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &maxLength);
             // The maxLength includes the NULL character
-            std::vector<GLchar> errorLog(maxLength);
+            std::vector<GLchar> errorLog(maxLength+1);
             glGetShaderInfoLog(shader, maxLength, &maxLength, &errorLog[0]);
             NIMO_ERROR("ERROR::PROGRAM_LINKING_ERROR of type: {}\n {}", type , &errorLog[0]);
             return false;
