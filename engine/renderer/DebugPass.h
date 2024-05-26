@@ -21,6 +21,8 @@ namespace nimo
 		std::shared_ptr<Shader> m_shader;
 		std::string vertexSourceBak;
 		std::string fragmentSourceBak;
+		float vertexScrollY{ 0 };
+		float fragmentScrollY{ 0 };
 	};
 
 	class DebugPass : public RenderPass
@@ -35,7 +37,7 @@ namespace nimo
 	private:
 		bool m_statsViewEnabled{ true };
 		bool m_exportedVariablesViewEnabled{ true };
-		bool m_shadersEditorViewEnabled{ true };
+		bool m_shadersEditorViewEnabled{ false };
 		bool applyRequested{ false };
 		bool revertRequested{ false };
 
@@ -46,12 +48,19 @@ namespace nimo
 		float m_timeDebugRefresh = 0;   // Time elapsed since last debug stats update
 		float m_currentTime = 0;
 		std::vector<PerformanceSample> m_samples;
+		bool m_recordingSamples{ false };
+		std::string m_recButtonText{ "Record" };
+		std::string m_headerName{ "Samples#0" };
+		int m_recordingTime{ 2 };
+		unsigned int m_firstSample2DumpIdx { 0 };
+		unsigned int m_lastSample2DumpIdx{ 0 };
 
 		std::map<std::string, std::shared_ptr<ShaderEntry>> m_openShaders;
-		//std::vector<std::string> m_openShaders;
 
 		const static ImGuiTreeNodeFlags TREENODE_BASE_FLAGS;
 		static const ImGuiSelectableFlags SELECTABLE_BASE_FLAGS;
 		static const ImGuiTabBarFlags TAB_BAR_BASE_FLAGS;
+
+		bool renderShaderEditPanel(std::string& label, std::string* code, float& scrollY, float width, float height);
 	};
 }
