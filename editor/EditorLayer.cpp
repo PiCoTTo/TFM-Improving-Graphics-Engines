@@ -674,8 +674,10 @@ void EditorLayer::CreateNewProject(const std::filesystem::path& folder, const st
         NIMO_DEBUG("Serialized Project {}", settings.name);
         rendererDebugPanel->SetRenderer({});
         m_sceneViewRenderer = std::make_shared<nimo::SceneRenderer>();
+        m_sceneViewRenderer->initialize();
         sceneViewPanel->setRenderer(m_sceneViewRenderer);
         m_gameViewRenderer = std::make_shared<nimo::SceneRenderer>();
+        m_gameViewRenderer->initialize();
         gameViewPanel->setRenderer(m_gameViewRenderer);
         rendererDebugPanel->SetRenderer(m_gameViewRenderer);
     }
@@ -701,9 +703,11 @@ void EditorLayer::openProject(nfdchar_t* path)
     rendererDebugPanel->SetRenderer({});
 
     m_sceneViewRenderer = std::make_shared<nimo::SceneRenderer>();
+    m_sceneViewRenderer->initialize();
     sceneViewPanel->setRenderer(m_sceneViewRenderer);
 
     m_gameViewRenderer = std::make_shared<nimo::SceneRenderer>();
+    m_gameViewRenderer->initialize();
     gameViewPanel->setRenderer(m_gameViewRenderer);
     rendererDebugPanel->SetRenderer(m_gameViewRenderer);
 }

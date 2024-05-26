@@ -15,6 +15,7 @@ void RuntimeLayer::OnAttach()
     NIMO_DEBUG("Loading scene {}", nimo::Project::GetActiveProject()->GetSettings().startScene);
     nimo::SceneManager::LoadScene(startingSceneId);
     renderer = std::make_shared<nimo::SceneRenderer>(true);
+    renderer->initialize();
 }
   
 void RuntimeLayer::OnUpdate(float deltaTime)
@@ -31,5 +32,5 @@ void RuntimeLayer::OnUpdate(float deltaTime)
         renderer->update(deltaTime);
         renderer->Render({}, scene->GetMainCamera(), scene->GetMainCameraTransform(), deltaTime);
     }
-    nimo::Renderer::EndFrame();
+    //nimo::Renderer::EndFrame();
 }

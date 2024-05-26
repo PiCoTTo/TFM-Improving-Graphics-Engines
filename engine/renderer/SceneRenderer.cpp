@@ -164,6 +164,7 @@ nimo::SceneRenderer::SceneRenderer(bool enableDebug) :
 
     //Lighting shader
     m_shaderLightingPass = nimo::AssetManager::Get<Shader>("Shaders/deferred_shading_pbr.nshader");
+    m_shaderForwardLightingPass = nimo::AssetManager::Get<Shader>("Shaders/forward_shading_pbr.nshader");
     //Cubemap background shader
     m_backgroundPass = nimo::AssetManager::Get<Shader>("Shaders/background.nshader");
     //Tone mapping shaderm_backgroundPass
@@ -177,11 +178,6 @@ nimo::SceneRenderer::SceneRenderer(bool enableDebug) :
     m_shaderText = AssetManager::Get<Shader>("Shaders/text.nshader");
 
     m_shaderDepth = nimo::AssetManager::Get<Shader>("Shaders/depth.nshader");
-
-    m_renderer.reset(this);
-    m_renderPasses.push_back(std::make_shared<nimo::DeferredPass>(m_renderer));
-    if(m_enabledDebug)
-        m_renderPasses.push_back(std::make_shared<nimo::DebugPass>(m_renderer));
 
     //White texture in memory
     unsigned int whitePixel = 0xFFFFFFFF;
@@ -220,6 +216,7 @@ nimo::SceneRenderer::SceneRenderer(bool enableDebug) :
     m_vboText->Bind();
     m_vboText->ApplyLayout();
 }
+
 nimo::SceneRenderer::~SceneRenderer()
 {
     delete m_vaoText;
@@ -230,6 +227,13 @@ nimo::SceneRenderer::~SceneRenderer()
 void nimo::SceneRenderer::SetScene(std::shared_ptr<Scene> scene)
 {
     m_scene = scene;
+}
+
+void nimo::SceneRenderer::initialize()
+{
+    m_renderPasses.push_back(std::make_shared<nimo::DeferredPass>(shared_from_this()));
+    if (m_enabledDebug)
+        m_renderPasses.push_back(std::make_shared<nimo::DebugPass>(shared_from_this()));
 }
 
 void nimo::SceneRenderer::update(float deltaTime)
@@ -261,6 +265,8 @@ void nimo::SceneRenderer::Render(std::shared_ptr<FrameBuffer> target, const Came
 
     for (const auto& renderPass : m_renderPasses)
         renderPass->render(target, cameraSettings, cameraTransform, deltaTime);
+
+    nimo::Renderer::EndFrame();
 
     glEnable(GL_DEPTH_TEST);
     // glDepthMask(GL_TRUE);  

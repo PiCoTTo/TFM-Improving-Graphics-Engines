@@ -5,6 +5,7 @@
 #include "fonts/Font.h"
 #include "renderer/RenderPass.h"
 
+
 namespace nimo
 {
     struct SceneInfo
@@ -15,13 +16,13 @@ namespace nimo
         glm::mat4 modelMatrix;
     };
 
-    class SceneRenderer
+    class SceneRenderer : public std::enable_shared_from_this<SceneRenderer>
     {
     public:
         SceneRenderer(bool enableDebug = false);
         ~SceneRenderer();
 
-        bool limitFPS = false;
+        bool limitFPS = true;
         bool m_enabledDebug = false;
 
         inline float currentFrameTime() const
@@ -39,6 +40,7 @@ namespace nimo
             return m_mustRender;
         }
 
+        void initialize();
         void SetScene(std::shared_ptr<Scene> scene);
         void update(float deltaTime = 0);
         void Render(std::shared_ptr<FrameBuffer> target = {}, const CameraComponent& cameraSettings = {}, const TransformComponent& cameraTransform = {}, float deltaTime = 0);
@@ -69,6 +71,7 @@ namespace nimo
         std::shared_ptr<FrameBuffer> m_hdrBloomUpsample6Buffer;
         std::shared_ptr<FrameBuffer> m_hdrFinalBloomBuffer;
         std::shared_ptr<Shader> m_shaderLightingPass;
+        std::shared_ptr<Shader> m_shaderForwardLightingPass;
         std::shared_ptr<Shader> m_backgroundPass;
         std::shared_ptr<Shader> m_hdrToneMappingPass;
         std::shared_ptr<Shader> m_hdrBrightFilterPass;
