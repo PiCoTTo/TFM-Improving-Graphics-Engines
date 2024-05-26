@@ -20,8 +20,8 @@ nimo::Shader::Shader(const std::string& filename)
         vShaderFile.close();
         // convert stream into string
         std::string code = vShaderStream.str();
-        m_vertexCode =  code.substr(code.find("@VERTEX", 0) + 7, code.find("@VERTEXEND", 0) - code.find("@VERTEX", 0) - 7);
-        m_fragmentCode = code.substr(code.find("@FRAGMENT", 0) + 9, code.find("@FRAGMENTEND", 0) - code.find("@FRAGMENT", 0) - 9);
+        m_vertexCode =  code.substr(code.find("@VERTEX\n", 0) + 8, code.find("@VERTEXEND", 0) - code.find("@VERTEX\n", 0) - 8);
+        m_fragmentCode = code.substr(code.find("@FRAGMENT\n", 0) + 10, code.find("@FRAGMENTEND", 0) - code.find("@FRAGMENT\n", 0) - 10);
         m_usable = Compile(m_vertexCode, m_fragmentCode);
     }
     catch (std::ifstream::failure& e)
