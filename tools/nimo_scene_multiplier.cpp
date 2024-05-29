@@ -6,13 +6,13 @@
 #include "glm/glm.hpp"
 #include "core/GUID.h"
 
-int main()
+int main(int argc, char** argv)
 {
     nimo::Log::Initialize();
     std::filesystem::path filepath = "Assets/Scenes/NewScene.nscene";
     std::filesystem::path bakFilepath = "Assets/Scenes/NewScene.bak";
 
-    std::cout << "Reading scene file " << filepath;
+    std::cout << "Reading scene file " << filepath << std::endl;
     std::ifstream file(filepath.c_str());
 
     if (!file.good())
@@ -26,16 +26,16 @@ int main()
 
     nlohmann::ordered_json sceneCopy(scene);
 
-    NIMO_INFO("Multiplying the mesh entities...");
+    NIMO_INFO("Multiplying mesh and point light entities...");
     for (auto& entity : scene["Entities"].items())
     {
-        NIMO_INFO("{}\n", entity.key());
+        //NIMO_INFO("{}\n", entity.key());
 
-        if (entity.value().contains("Mesh"))
+        if (entity.value().contains("Mesh") || entity.value().contains("PointLight"))
         {
             auto Translation = glm::vec3((float)entity.value()["Transform"]["Translation"][0], (float)entity.value()["Transform"]["Translation"][1], (float)entity.value()["Transform"]["Translation"][2]);
 
-            // Multiplies meshes
+            // Multiplies meshes and point lights
             glm::vec3 offset(2, 0, 1);
             int numOfCopies = 10;
 
