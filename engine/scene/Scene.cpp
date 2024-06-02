@@ -33,7 +33,11 @@ void nimo::Scene::Update()
 {
     m_registry.view<ActiveComponent, AudioSourceComponent>().each([&](ActiveComponent& active, AudioSourceComponent& audio)
     {
-        if(!active.active) return;
+        if (!active.active)
+        {
+            audio.sound->Stop();
+            return;
+        }
         if(!audio.initialized)
         {
             audio.Apply();
@@ -44,6 +48,8 @@ void nimo::Scene::Update()
             }
             audio.initialized = true;
         }
+        else if (audio.sound && !audio.sound->IsPlaying())
+            audio.sound->Play();
     });
     m_registry.view<ActiveComponent, ScriptComponent>().each([&](ActiveComponent& active, ScriptComponent& script)
     {
