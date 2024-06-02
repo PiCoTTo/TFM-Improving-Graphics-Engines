@@ -43,6 +43,8 @@ namespace nimo
 
 		std::shared_ptr<nimo::SceneRenderer> m_renderer;
 		nimo::RendererStats m_displayedStats;
+		nimo::RendererStats m_emptyDisplayedStats;
+		bool m_resetDisplayedStats{ false };
 		double m_frameTimeSamplesSum = 0;
 		int m_refreshRate = 2;  // Stats display update frequency (times/sec)
 		float m_timeDebugRefresh = 0;   // Time elapsed since last debug stats update
@@ -62,5 +64,6 @@ namespace nimo
 		static const ImGuiTabBarFlags TAB_BAR_BASE_FLAGS;
 
 		bool renderShaderEditPanel(std::string& label, std::string* code, float& scrollY, float width, float height);
+		std::string labelPrefix(const char* const label);
 	};
 }

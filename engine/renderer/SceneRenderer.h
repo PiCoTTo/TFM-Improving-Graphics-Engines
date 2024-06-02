@@ -8,6 +8,15 @@
 
 namespace nimo
 {
+    enum class RenderPassId
+    {
+        Deferred,
+        Forward,
+        Shadow,
+        Postprocess,
+        Debug
+    };
+
     struct SceneInfo
     {
         glm::mat4 projectionMatrix;
@@ -22,7 +31,7 @@ namespace nimo
         SceneRenderer(bool enableDebug = false);
         ~SceneRenderer();
 
-        bool limitFPS = true;
+        bool limitFPS = false;
         bool m_enabledDebug = false;
 
         inline float currentFrameTime() const
@@ -44,6 +53,7 @@ namespace nimo
         void SetScene(std::shared_ptr<Scene> scene);
         void update(float deltaTime = 0);
         void Render(std::shared_ptr<FrameBuffer> target = {}, const CameraComponent& cameraSettings = {}, const TransformComponent& cameraTransform = {}, float deltaTime = 0);
+        void updateFromChangedVariables();
     public:
         Timer m_frameTimer;
         float m_frameTime;
@@ -90,8 +100,16 @@ namespace nimo
         float m_cumulativeFrameTime = 1 / FPS_LIMIT;
         bool m_mustRender{ true };
         unsigned int m_renderEntitiesLimit{ 724 };
+        unsigned int m_pointLightEntitiesLimit{ 32 };
 
-        std::vector<std::shared_ptr<nimo::RenderPass>> m_renderPasses;
+    private:
+        std::vector < std::pair < RenderPassId, std::shared_ptr<nimo::RenderPass> > > m_renderPasses;
+        std::shared_ptr<nimo::RenderPass> m_debugPass;
         std::shared_ptr<SceneRenderer> m_renderer;
+
+        bool m_mustReconfigurePipeline{ false };
+        bool m_useDeferredShading{ true };
     };
 } // namespace nimo
+
+void renderCube2();

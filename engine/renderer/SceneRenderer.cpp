@@ -8,6 +8,7 @@
 #include "core/ExportedVariablesManager.h"
 #include "renderer/DebugPass.h"
 #include "renderer/DeferredPass.h"
+#include "renderer/ForwardPass.h"
 
 
 struct TextVertex
@@ -90,8 +91,9 @@ void renderCube2()
 nimo::SceneRenderer::SceneRenderer(bool enableDebug) :
     m_enabledDebug(enableDebug)
 {
-    ExportedVariablesManager::instance()->addVariable("RENDERER_LIMIT_FPS", limitFPS);
-    ExportedVariablesManager::instance()->addVariable("RENDERER_ENTITIES_LIMIT", m_renderEntitiesLimit);
+    nimo::ExportedVariablesManager::instance()->addVariable("RENDERER_LIMIT_FPS", limitFPS);
+    nimo::ExportedVariablesManager::instance()->addVariable("RENDERER_ENTITIES_LIMIT", m_renderEntitiesLimit);
+    nimo::ExportedVariablesManager::instance()->addVariable("RENDERER_LIGHT_POINTS_LIMIT", m_pointLightEntitiesLimit);
 
     // Directional Light buffer
     FrameBuffer::Details directionalLightBufferDetails;
@@ -215,6 +217,8 @@ nimo::SceneRenderer::SceneRenderer(bool enableDebug) :
     m_iboText->Bind();
     m_vboText->Bind();
     m_vboText->ApplyLayout();
+
+    ExportedVariablesManager::instance()->addVariable("RENDERER_USE_DEFERRED", m_useDeferredShading);
 }
 
 nimo::SceneRenderer::~SceneRenderer()
@@ -231,15 +235,31 @@ void nimo::SceneRenderer::SetScene(std::shared_ptr<Scene> scene)
 
 void nimo::SceneRenderer::initialize()
 {
-    m_renderPasses.push_back(std::make_shared<nimo::DeferredPass>(shared_from_this()));
+    //m_renderPasses.push_back(std::make_shared<nimo::DeferredPass>(shared_from_this()));
+    m_renderPasses.clear();
+    if(m_useDeferredShading)
+        m_renderPasses.push_back({ RenderPassId::Deferred, std::make_shared<nimo::DeferredPass>(shared_from_this()) });
+    else
+        m_renderPasses.push_back({ RenderPassId::Forward, std::make_shared<nimo::ForwardPass>(shared_from_this()) });
+
     if (m_enabledDebug)
-        m_renderPasses.push_back(std::make_shared<nimo::DebugPass>(shared_from_this()));
+    {
+        if (!m_debugPass)
+            m_debugPass = std::make_shared<nimo::DebugPass>(shared_from_this());
+        m_renderPasses.push_back({ RenderPassId::Debug, m_debugPass });
+    }
 }
 
 void nimo::SceneRenderer::update(float deltaTime)
 {
+    if (m_mustReconfigurePipeline)
+    {
+        initialize();
+        m_mustReconfigurePipeline = false;
+    }
+
     for (const auto& renderPass : m_renderPasses)
-        renderPass->update(deltaTime);
+        renderPass.second->update(deltaTime);
 }
 
 void nimo::SceneRenderer::Render(std::shared_ptr<FrameBuffer> target, const CameraComponent& cameraSettings, const TransformComponent& cameraTransform, float deltaTime)
@@ -264,7 +284,7 @@ void nimo::SceneRenderer::Render(std::shared_ptr<FrameBuffer> target, const Came
     nimo::Renderer::BeginFrame();
 
     for (const auto& renderPass : m_renderPasses)
-        renderPass->render(target, cameraSettings, cameraTransform, deltaTime);
+        renderPass.second->render(target, cameraSettings, cameraTransform, deltaTime);
 
     nimo::Renderer::EndFrame();
 
@@ -274,4 +294,13 @@ void nimo::SceneRenderer::Render(std::shared_ptr<FrameBuffer> target, const Came
     m_geometry2DFrameTimer.Stop();
     m_renderFrameTimer.Stop();
     m_scene = {};
+}
+
+void nimo::SceneRenderer::updateFromChangedVariables()
+{
+    auto renderPass = std::find_if(m_renderPasses.begin(), m_renderPasses.end(), [](auto i) {
+        return i.first == RenderPassId::Deferred; });
+
+    if (m_useDeferredShading != (renderPass != m_renderPasses.end()))
+        m_mustReconfigurePipeline = true;
 }

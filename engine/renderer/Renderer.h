@@ -11,6 +11,7 @@ namespace nimo {
         int totalDrawCalls = 0;
         float frameTime = 0;
         float maximumFrameTime = 0;
+        float minimumFrameTime = 1000;
         float averageFrameTime = 0;
         float renderFrameTime = 0;
         float geometryFrameTime = 0;

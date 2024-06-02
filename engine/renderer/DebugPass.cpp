@@ -80,14 +80,26 @@ namespace nimo
         if (m_shadersEditorViewEnabled && nimo::Input::GetKey(nimo::KeyCode::LeftControl) && nimo::Input::GetKeyPressed(nimo::KeyCode::R))
             revertRequested = true;
 
+        if (m_resetDisplayedStats)
+        {
+            m_displayedStats = m_emptyDisplayedStats;
+            m_samples.clear();
+            m_frameTimeSamplesSum = 0;
+            m_resetDisplayedStats = false;
+        }
+
         m_currentTime += deltaTime;
         m_timeDebugRefresh += deltaTime;
         if (m_timeDebugRefresh > 1.f / m_refreshRate)
         {
             //m_displayedStats.frameTime = m_gameViewPanel->getFrameTime();
             m_displayedStats.frameTime = m_renderer->currentFrameTime();
+            // Wait 2 seconds of time to reach stable performance
             if (m_currentTime > 2)
+            {
                 m_displayedStats.maximumFrameTime = std::max(m_displayedStats.maximumFrameTime, m_displayedStats.frameTime);
+                m_displayedStats.minimumFrameTime = std::min(m_displayedStats.minimumFrameTime, m_displayedStats.frameTime);
+            }
             m_displayedStats.renderFrameTime = m_renderer->m_renderFrameTimer.ElapsedMillis();
             m_displayedStats.geometryFrameTime = m_renderer->m_geometryFrameTimer.ElapsedMillis();
             m_displayedStats.lightingFrameTime = m_renderer->m_lightingFrameTimer.ElapsedMillis();
@@ -200,6 +212,7 @@ namespace nimo
             ImGui::TextDisabled("Draw calls: %d", nimo::Renderer::stats.totalDrawCalls);
             ImGui::TextDisabled("Triangle count: %d", nimo::Renderer::stats.totalTriangles);
             ImGui::Text("FPS: %.2f", m_displayedStats.frameTime > 0 ? 1000.f / m_displayedStats.frameTime : 0);
+            ImGui::Text("Max FPS: %.2f", m_displayedStats.minimumFrameTime > 0 ? 1000.f / m_displayedStats.minimumFrameTime : 0);
             ImGui::Text("Avg FPS: %.2f", m_displayedStats.averageFrameTime > 0 ? 1000.f / m_displayedStats.averageFrameTime : 0);
             ImGui::Text("Min FPS: %.2f", m_displayedStats.maximumFrameTime > 0 ? 1000.f / m_displayedStats.maximumFrameTime : 0);
             ImGui::Text("Last frame time: %.3f ms", m_displayedStats.frameTime);
@@ -212,8 +225,13 @@ namespace nimo
             //ImGui::SameLine();
             //std::string dataTitle = "data";
             ImGui::InputText("Data Title", &m_headerName);
-
             ImGui::InputInt("Rec Time", &m_recordingTime);
+
+            ImGui::BeginDisabled(m_recordingSamples);
+            if (ImGui::Button("Reset"))
+                m_resetDisplayedStats = true;
+            ImGui::EndDisabled();
+
             if (m_recordingSamples)
                 ImGui::Text("Recording");
             std::string recButtonText = m_recordingSamples ? "Cancel" : "Record";
@@ -234,22 +252,30 @@ namespace nimo
 
             ImGui::Button("\tRestore\t");
 
+            bool anythingChanged{ false };
             for (const auto& exportedVariablePair : ExportedVariablesManager::instance()->variables())
             {
                 auto exportedVariable = exportedVariablePair.second;
                 if (exportedVariable->m_type == std::type_index(typeid(bool)))
                 {
-                    ImGui::Checkbox(exportedVariable->m_name.c_str(), static_cast<bool*>(exportedVariable->m_value));
+                    anythingChanged |= ImGui::Checkbox(exportedVariable->m_name.c_str(), static_cast<bool*>(exportedVariable->m_value));
                 }
 
                 if (exportedVariable->m_type == std::type_index(typeid(unsigned int)))
                 {
-                    //ImGui::Text("Vertex");
-                    //ImGui::SameLine();
                     ImGui::PushItemWidth(40.f);
-                    ImGui::DragInt(exportedVariable->m_name.c_str(), static_cast<int*>(exportedVariable->m_value));
+                    anythingChanged |= ImGui::DragInt(exportedVariable->m_name.c_str(), static_cast<int*>(exportedVariable->m_value));
+                }
+
+                if (exportedVariable->m_type == std::type_index(typeid(glm::vec3)))
+                {
+                    auto vector = static_cast<glm::vec3*>(exportedVariable->m_value);
+                    ImGui::PushItemWidth(200.f);
+                    anythingChanged |= ImGui::DragFloat3(exportedVariable->m_name.c_str(), &vector->x, 0.05f);
                 }
             }
+            if (anythingChanged)
+                m_renderer->updateFromChangedVariables();
 
             //TODO Add more types
             //if (typeid(i) == typeid(int))
@@ -431,6 +457,25 @@ namespace nimo
 
         return changed;
     }
+
+
+    // https://github.com/libigl/libigl/issues/1300#issuecomment-1310174619
+    std::string DebugPass::labelPrefix(const char* const label)
+    {
+        float width = ImGui::CalcItemWidth();
+
+        float x = ImGui::GetCursorPosX();
+        ImGui::Text(label);
+        ImGui::SameLine();
+        ImGui::SetCursorPosX(x + width * 0.5f + ImGui::GetStyle().ItemInnerSpacing.x);
+        ImGui::SetNextItemWidth(-1);
+
+        std::string labelID = "##";
+        labelID += label;
+
+        return labelID;
+    }
+
 
     const ImGuiTreeNodeFlags DebugPass::TREENODE_BASE_FLAGS = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_SpanFullWidth | ImGuiTreeNodeFlags_OpenOnDoubleClick | ImGuiTreeNodeFlags_FramePadding;
     const ImGuiTabBarFlags TAB_BAR_BASE_FLAGS = ImGuiTabBarFlags_Reorderable;
