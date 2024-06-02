@@ -10,6 +10,8 @@
 #include "renderer/Mesh.h"
 #include "renderer/Material.h"
 #include "renderer/EnvironmentMap.h"
+#include "core/ExportedVariablesManager.h"
+
 
 void nimo::AssetSerializer<nimo::Scene>::Serialize(const AssetMetadata& metadata, const std::shared_ptr<nimo::Scene>& asset)
 {
@@ -238,6 +240,11 @@ nimo::GUID nimo::AssetSerializer<nimo::Scene>::DeserializeEntity(const std::shar
     else
         id = GUID::Create();
     nimo::Entity createdEntity = scene->CreateEntityWithID(id);
+    bool exportVariables{ false };
+    if (source.contains("PointLight") || source.contains("AudioSource"))
+    {
+        exportVariables = true;
+    }
     for (auto field : source.items())
     {
         if(field.key() == "Label")
@@ -247,6 +254,8 @@ nimo::GUID nimo::AssetSerializer<nimo::Scene>::DeserializeEntity(const std::shar
         if(field.key() == "Active")
         {
             createdEntity.GetComponent<ActiveComponent>().active = field.value();
+            if (exportVariables)
+                nimo::ExportedVariablesManager::instance()->addVariable(createdEntity.GetComponent<LabelComponent>().Label + "_Active", createdEntity.GetComponent<ActiveComponent>().active);
         }
         if(field.key() == "Transform")
         {
@@ -257,6 +266,8 @@ nimo::GUID nimo::AssetSerializer<nimo::Scene>::DeserializeEntity(const std::shar
             t.Translation = Translation;
             t.Rotation = Rotation;
             t.Scale = Scale;
+            if (exportVariables)
+                nimo::ExportedVariablesManager::instance()->addVariable(createdEntity.GetComponent<LabelComponent>().Label + "_Translation", t.Translation);
         }
         if(field.key() == "Family")
         {
