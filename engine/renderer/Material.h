@@ -14,6 +14,7 @@ namespace nimo{
     public:
         Material(const std::shared_ptr<Shader>& shader, std::vector<IMaterialProperty*> properties)
             : shader(shader)
+            , shaderBackup(shader)
             , properties(properties)
         {}
         Material(const std::string& filepath)
@@ -23,6 +24,7 @@ namespace nimo{
             nlohmann::json j;
             j << fin;
             shader = AssetManager::Get<Shader>(AssetId(std::string(j["shader"])));
+            shaderBackup = shader;
             for(auto o : j["properties"])
             {
                 if(o["type"] == "vector2")
@@ -67,6 +69,8 @@ namespace nimo{
         }
         AssetType Type() const { return AssetType::Material; }
         static AssetType StaticType(){return AssetType::Material;}
+        void setShader(std::shared_ptr<Shader>& sh) { shader = sh; }
+        void restoreShader() { shader = shaderBackup; }
         void Setup(){
             for(auto p : properties)
                 p->Setup(shader.get());
@@ -127,6 +131,7 @@ namespace nimo{
             }
         }
         std::shared_ptr<Shader> shader;
+        std::shared_ptr<Shader> shaderBackup;
         std::vector<IMaterialProperty*> properties;
     };
 };
