@@ -5,84 +5,11 @@
 //#include "glm/glm.hpp"
 //#include "glm/gtc/matrix_transform.hpp"
 #include "glm/gtx/matrix_decompose.hpp"
+#include "SceneRenderer.h"
 
 
 namespace nimo
 {
-    unsigned int cubeVAO2 = 0;
-    unsigned int cubeVBO2 = 0;
-    void renderCube2()
-    {
-        // initialize (if necessary)
-        if (cubeVAO2 == 0)
-        {
-            float vertices[] = {
-                // back face
-                -1.0f, -1.0f, -1.0f,  0.0f,  0.0f, -1.0f, 0.0f, 0.0f, // bottom-left
-                 1.0f,  1.0f, -1.0f,  0.0f,  0.0f, -1.0f, 1.0f, 1.0f, // top-right
-                 1.0f, -1.0f, -1.0f,  0.0f,  0.0f, -1.0f, 1.0f, 0.0f, // bottom-right         
-                 1.0f,  1.0f, -1.0f,  0.0f,  0.0f, -1.0f, 1.0f, 1.0f, // top-right
-                -1.0f, -1.0f, -1.0f,  0.0f,  0.0f, -1.0f, 0.0f, 0.0f, // bottom-left
-                -1.0f,  1.0f, -1.0f,  0.0f,  0.0f, -1.0f, 0.0f, 1.0f, // top-left
-                // front face
-                -1.0f, -1.0f,  1.0f,  0.0f,  0.0f,  1.0f, 0.0f, 0.0f, // bottom-left
-                 1.0f, -1.0f,  1.0f,  0.0f,  0.0f,  1.0f, 1.0f, 0.0f, // bottom-right
-                 1.0f,  1.0f,  1.0f,  0.0f,  0.0f,  1.0f, 1.0f, 1.0f, // top-right
-                 1.0f,  1.0f,  1.0f,  0.0f,  0.0f,  1.0f, 1.0f, 1.0f, // top-right
-                -1.0f,  1.0f,  1.0f,  0.0f,  0.0f,  1.0f, 0.0f, 1.0f, // top-left
-                -1.0f, -1.0f,  1.0f,  0.0f,  0.0f,  1.0f, 0.0f, 0.0f, // bottom-left
-                // left face
-                -1.0f,  1.0f,  1.0f, -1.0f,  0.0f,  0.0f, 1.0f, 0.0f, // top-right
-                -1.0f,  1.0f, -1.0f, -1.0f,  0.0f,  0.0f, 1.0f, 1.0f, // top-left
-                -1.0f, -1.0f, -1.0f, -1.0f,  0.0f,  0.0f, 0.0f, 1.0f, // bottom-left
-                -1.0f, -1.0f, -1.0f, -1.0f,  0.0f,  0.0f, 0.0f, 1.0f, // bottom-left
-                -1.0f, -1.0f,  1.0f, -1.0f,  0.0f,  0.0f, 0.0f, 0.0f, // bottom-right
-                -1.0f,  1.0f,  1.0f, -1.0f,  0.0f,  0.0f, 1.0f, 0.0f, // top-right
-                // right face
-                 1.0f,  1.0f,  1.0f,  1.0f,  0.0f,  0.0f, 1.0f, 0.0f, // top-left
-                 1.0f, -1.0f, -1.0f,  1.0f,  0.0f,  0.0f, 0.0f, 1.0f, // bottom-right
-                 1.0f,  1.0f, -1.0f,  1.0f,  0.0f,  0.0f, 1.0f, 1.0f, // top-right         
-                 1.0f, -1.0f, -1.0f,  1.0f,  0.0f,  0.0f, 0.0f, 1.0f, // bottom-right
-                 1.0f,  1.0f,  1.0f,  1.0f,  0.0f,  0.0f, 1.0f, 0.0f, // top-left
-                 1.0f, -1.0f,  1.0f,  1.0f,  0.0f,  0.0f, 0.0f, 0.0f, // bottom-left     
-                 // bottom face
-                 -1.0f, -1.0f, -1.0f,  0.0f, -1.0f,  0.0f, 0.0f, 1.0f, // top-right
-                  1.0f, -1.0f, -1.0f,  0.0f, -1.0f,  0.0f, 1.0f, 1.0f, // top-left
-                  1.0f, -1.0f,  1.0f,  0.0f, -1.0f,  0.0f, 1.0f, 0.0f, // bottom-left
-                  1.0f, -1.0f,  1.0f,  0.0f, -1.0f,  0.0f, 1.0f, 0.0f, // bottom-left
-                 -1.0f, -1.0f,  1.0f,  0.0f, -1.0f,  0.0f, 0.0f, 0.0f, // bottom-right
-                 -1.0f, -1.0f, -1.0f,  0.0f, -1.0f,  0.0f, 0.0f, 1.0f, // top-right
-                 // top face
-                 -1.0f,  1.0f, -1.0f,  0.0f,  1.0f,  0.0f, 0.0f, 1.0f, // top-left
-                  1.0f,  1.0f , 1.0f,  0.0f,  1.0f,  0.0f, 1.0f, 0.0f, // bottom-right
-                  1.0f,  1.0f, -1.0f,  0.0f,  1.0f,  0.0f, 1.0f, 1.0f, // top-right     
-                  1.0f,  1.0f,  1.0f,  0.0f,  1.0f,  0.0f, 1.0f, 0.0f, // bottom-right
-                 -1.0f,  1.0f, -1.0f,  0.0f,  1.0f,  0.0f, 0.0f, 1.0f, // top-left
-                 -1.0f,  1.0f,  1.0f,  0.0f,  1.0f,  0.0f, 0.0f, 0.0f  // bottom-left        
-            };
-            glGenVertexArrays(1, &cubeVAO2);
-            glGenBuffers(1, &cubeVBO2);
-            // fill buffer
-            glBindBuffer(GL_ARRAY_BUFFER, cubeVBO2);
-            glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-            // link vertex attributes
-            glBindVertexArray(cubeVAO2);
-            glEnableVertexAttribArray(0);
-            glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
-            glEnableVertexAttribArray(1);
-            glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
-            glEnableVertexAttribArray(2);
-            glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
-            glBindBuffer(GL_ARRAY_BUFFER, 0);
-            glBindVertexArray(0);
-        }
-        // render Cube
-        glBindVertexArray(cubeVAO2);
-        glDrawArrays(GL_TRIANGLES, 0, 36);
-        glBindVertexArray(0);
-    }
-
-
 	void ForwardPass::render(std::shared_ptr<FrameBuffer> target, const CameraComponent& cameraSettings, const TransformComponent& cameraTransform, float deltaTime)
 	{
         // Performance metrics
@@ -108,38 +35,10 @@ namespace nimo
         glm::mat4 viewMatrix = camTransform.GetView();
         auto viewPosition = glm::vec3(camTransform.Translation.x, camTransform.Translation.y, camTransform.Translation.z);
 
-        m_renderer->m_geometryFrameTimer.Reset();
         // Lighting
-        m_renderer->m_shaderForwardLightingPass->use();
-        m_renderer->m_shaderForwardLightingPass->Set("gPosition", 0);
-        m_renderer->m_shaderForwardLightingPass->Set("gNormal", 1);
-        m_renderer->m_shaderForwardLightingPass->Set("gAlbedo", 2);
-
-
-        // Render scene into gbuffer
-        glEnable(GL_DEPTH_TEST);
-        glDepthMask(GL_TRUE);
-        m_renderer->m_gBuffer->Bind();
-        unsigned int entitiesDrawn = 0;
-        auto& kk = m_renderer->m_scene->entitiesRegistry();
-        auto kk2 = kk.view<ActiveComponent, IDComponent, MeshComponent, MeshRendererComponent>();
-        m_renderer->m_scene->entitiesRegistry().view<ActiveComponent, IDComponent, MeshComponent, MeshRendererComponent>().each([&](ActiveComponent& active, IDComponent& id, MeshComponent& m, MeshRendererComponent& r) {
-            if (entitiesDrawn >= m_renderer->m_renderEntitiesLimit) return;
-            if (!active.active) return;
-            if (!r.material || !r.material->shader || !m.source) return;
-            r.material->shader->use();
-            r.material->Setup();
-            r.material->shader->Set("viewPos", viewPosition);
-            r.material->shader->Set("transform", m_renderer->m_scene->GetWorldSpaceTransformMatrix(m_renderer->m_scene->GetEntity(id.Id)));
-            r.material->shader->Set("view", viewMatrix);
-            r.material->shader->Set("projection", projection);
-            Renderer::DrawMesh(*m.source->GetSubmesh(m.submeshIndex));
-            entitiesDrawn++;
-        });
-        m_renderer->m_geometryFrameTimer.Stop();
-
         m_renderer->m_lightingFrameTimer.Reset();
         // Render scene into directional light depth buffer
+        unsigned int entitiesDrawn = 0;
         auto directionalLightEntities = m_renderer->m_scene->entitiesRegistry().view<DirectionalLightComponent>();
         auto directionalLightProjection = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, 0.1f, 100.0f);
         if (directionalLightEntities.size())
@@ -162,31 +61,26 @@ namespace nimo
             });
             glCullFace(GL_BACK);
         }
+
+        // Clean LightDepthBuffer
+        //glClear(GL_DEPTH_BUFFER_BIT);
+        //glClearDepthf(1.0f);
+
         // Lighting pass
         m_renderer->m_hdrColorBuffer->Bind();
-        m_renderer->m_shaderLightingPass->use();
-        m_renderer->m_shaderLightingPass->Set("gPosition", 0);
-        m_renderer->m_shaderLightingPass->Set("gNormal", 1);
-        m_renderer->m_shaderLightingPass->Set("gAlbedo", 2);
-        m_renderer->m_shaderLightingPass->Set("gARM", 3);
-        m_renderer->m_shaderLightingPass->Set("gDepth", 4);
-        m_renderer->m_shaderLightingPass->Set("InvProjection", glm::inverse(projection));
-        m_renderer->m_gBuffer->BindColorTexture(0, 0);
-        m_renderer->m_gBuffer->BindColorTexture(1, 1);
-        m_renderer->m_gBuffer->BindColorTexture(2, 2);
-        m_renderer->m_gBuffer->BindColorTexture(3, 3);
-        m_renderer->m_gBuffer->BindDepthTexture(4);
+        m_renderer->m_shaderForwardLightingPass->use();
+        
         if (directionalLightEntities.size())
         {
             Entity directionalLight(*directionalLightEntities.begin(), m_renderer->m_scene->entitiesRegistry());
             auto directionalLightPosition = directionalLight.GetComponent<TransformComponent>().Translation;
             auto directionalLightView = directionalLight.GetComponent<TransformComponent>().GetView();
-            m_renderer->m_shaderLightingPass->Set("directionalLightShadowMap", 5);
+            m_renderer->m_shaderForwardLightingPass->Set("directionalLightShadowMap", 5);
             m_renderer->m_directionalLightDepthBuffer->BindDepthTexture(5);
-            m_renderer->m_shaderLightingPass->Set("directionalLightSpaceMatrix", directionalLightProjection * directionalLightView);
-            m_renderer->m_shaderLightingPass->Set("directionalLightPos", directionalLightPosition);
-            m_renderer->m_shaderLightingPass->Set("directionalLightColor", directionalLight.GetComponent<DirectionalLightComponent>().Color);
-            m_renderer->m_shaderLightingPass->Set("directionalLightIntensity", directionalLight.GetComponent<DirectionalLightComponent>().Intensity);
+            m_renderer->m_shaderForwardLightingPass->Set("directionalLightSpaceMatrix", directionalLightProjection * directionalLightView);
+            m_renderer->m_shaderForwardLightingPass->Set("directionalLightPos", directionalLightPosition);
+            m_renderer->m_shaderForwardLightingPass->Set("directionalLightColor", directionalLight.GetComponent<DirectionalLightComponent>().Color);
+            m_renderer->m_shaderForwardLightingPass->Set("directionalLightIntensity", directionalLight.GetComponent<DirectionalLightComponent>().Intensity);
         }
         int currentLights = 0;
         m_renderer->m_scene->entitiesRegistry().view<IDComponent, ActiveComponent, PointLightComponent, TransformComponent>().each([&](IDComponent id, ActiveComponent active, PointLightComponent& light, TransformComponent& lightTransform)
@@ -198,42 +92,60 @@ namespace nimo
             glm::vec3 skew;
             glm::vec4 perspective;
             glm::decompose(m_renderer->m_scene->GetWorldSpaceTransformMatrix(m_renderer->m_scene->GetEntity(id.Id)), scale, rotation, translation, skew, perspective);
-            m_renderer->m_shaderLightingPass->Set("lights[" + std::to_string(currentLights) + "].Position", translation);
-            m_renderer->m_shaderLightingPass->Set("lights[" + std::to_string(currentLights) + "].Color", light.Color);
-            m_renderer->m_shaderLightingPass->Set("lights[" + std::to_string(currentLights) + "].Intensity", light.Intensity);
+            m_renderer->m_shaderForwardLightingPass->Set("lights[" + std::to_string(currentLights) + "].Position", translation);
+            m_renderer->m_shaderForwardLightingPass->Set("lights[" + std::to_string(currentLights) + "].Color", light.Color);
+            m_renderer->m_shaderForwardLightingPass->Set("lights[" + std::to_string(currentLights) + "].Intensity", light.Intensity);
             static const float constant = 1.0f; // note that we don't send this to the shader, we assume it is always 1.0 (in our case)
             static const float linear = 0.7f;
             static const float quadratic = 1.8f;
-            m_renderer->m_shaderLightingPass->Set("lights[" + std::to_string(currentLights) + "].Linear", linear);
-            m_renderer->m_shaderLightingPass->Set("lights[" + std::to_string(currentLights) + "].Quadratic", quadratic);
+            m_renderer->m_shaderForwardLightingPass->Set("lights[" + std::to_string(currentLights) + "].Linear", linear);
+            m_renderer->m_shaderForwardLightingPass->Set("lights[" + std::to_string(currentLights) + "].Quadratic", quadratic);
             // then calculate radius of light volume/sphere
             const float maxBrightness = std::fmaxf(std::fmaxf(light.Color.r, light.Color.g), light.Color.b) * light.Intensity;
             float radius = (-linear + std::sqrt(linear * linear - 4 * quadratic * (constant - (256.0f / 5.0f) * maxBrightness))) / (2.0f * quadratic);
-            m_renderer->m_shaderLightingPass->Set("lights[" + std::to_string(currentLights) + "].Radius", radius);
-            m_renderer->m_shaderLightingPass->Set("lights[" + std::to_string(currentLights) + "].Active", true);
+            m_renderer->m_shaderForwardLightingPass->Set("lights[" + std::to_string(currentLights) + "].Radius", radius);
+            m_renderer->m_shaderForwardLightingPass->Set("lights[" + std::to_string(currentLights) + "].Active", true);
             currentLights++;
         });
         for (int i = currentLights; i < 32; ++i)
         {
-            m_renderer->m_shaderLightingPass->Set("lights[" + std::to_string(i) + "].Active", false);
+            m_renderer->m_shaderForwardLightingPass->Set("lights[" + std::to_string(i) + "].Active", false);
         }
-        m_renderer->m_shaderLightingPass->Set("viewPos", viewPosition);
+        m_renderer->m_shaderForwardLightingPass->Set("viewPos", viewPosition);
         auto skyLightEntities = m_renderer->m_scene->entitiesRegistry().view<SkyLightComponent>();
         if (skyLightEntities.size())
         {
             Entity skyLight(*skyLightEntities.begin(), m_renderer->m_scene->entitiesRegistry());
             if (skyLight.GetComponent<SkyLightComponent>().environment)
             {
-                m_renderer->m_shaderLightingPass->Set("irradianceMap", 8);
+                m_renderer->m_shaderForwardLightingPass->Set("irradianceMap", 8);
                 skyLight.GetComponent<SkyLightComponent>().environment->BindIrradiance(8);
             }
         }
-        Renderer::DrawFullScreenQuad();
+
+        // Render scene
+        glEnable(GL_DEPTH_TEST);
+        glDepthMask(GL_TRUE);
+        m_renderer->m_scene->entitiesRegistry().view<ActiveComponent, IDComponent, MeshComponent, MeshRendererComponent>().each([&](ActiveComponent& active, IDComponent& id, MeshComponent& m, MeshRendererComponent& r) {
+            if (entitiesDrawn >= m_renderer->m_renderEntitiesLimit) return;
+            if (!active.active) return;
+            if (!r.material || !r.material->shader || !m.source) return;
+            r.material->setShader(m_renderer->m_shaderForwardLightingPass);
+            r.material->shader->use();
+            r.material->Setup();
+            r.material->shader->Set("viewPos", viewPosition);
+            r.material->shader->Set("transform", m_renderer->m_scene->GetWorldSpaceTransformMatrix(m_renderer->m_scene->GetEntity(id.Id)));
+            r.material->shader->Set("view", viewMatrix);
+            r.material->shader->Set("projection", projection);
+
+            Renderer::DrawMesh(*m.source->GetSubmesh(m.submeshIndex));
+            entitiesDrawn++;
+        });
+
         m_renderer->m_lightingFrameTimer.Stop();
 
         // Background pass
         glDepthFunc(GL_LEQUAL);
-        m_renderer->m_gBuffer->CopyDepthTo(m_renderer->m_hdrColorBuffer);
         m_renderer->m_backgroundPass->use();
         m_renderer->m_backgroundPass->Set("view", viewMatrix);
         m_renderer->m_backgroundPass->Set("projection", projection);
