@@ -70,7 +70,7 @@ namespace nimo{
         AssetType Type() const { return AssetType::Material; }
         static AssetType StaticType(){return AssetType::Material;}
         void setShader(std::shared_ptr<Shader>& sh) { shader = sh; }
-        void restoreShader() { shader = shaderBackup; }
+        void restoreShader() { if(shader != shaderBackup) shader = shaderBackup; }
         void Setup(){
             for(auto p : properties)
                 p->Setup(shader.get());
