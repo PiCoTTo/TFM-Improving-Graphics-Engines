@@ -61,7 +61,7 @@ namespace nimo
             m_renderer->m_scene->entitiesRegistry().view<ActiveComponent, IDComponent, MeshComponent>().each([&](ActiveComponent& active, IDComponent& id, MeshComponent& m) {
                 if (entitiesDrawn >= m_renderer->m_renderEntitiesLimit) return;
                 if (!active.active) return;
-                if (!m.source || !m.inFrustrum) return;
+                if (!m.source || !m.inFrustum) return;
                 m_renderer->m_shaderDepth->Set("transform", m_renderer->m_scene->GetWorldSpaceTransformMatrix(m_renderer->m_scene->GetEntity(id.Id)));
                 Renderer::DrawMesh(*m.source->GetSubmesh(m.submeshIndex));
                 entitiesDrawn++;
@@ -136,7 +136,7 @@ namespace nimo
         m_renderer->m_scene->entitiesRegistry().view<ActiveComponent, IDComponent, MeshComponent, MeshRendererComponent>().each([&](ActiveComponent& active, IDComponent& id, MeshComponent& m, MeshRendererComponent& r) {
             if (entitiesDrawn >= m_renderer->m_renderEntitiesLimit) return;
             if (!active.active) return;
-            if (!r.material || !r.material->shader || !m.source || !m.inFrustrum) return;
+            if (!r.material || !r.material->shader || !m.source || !m.inFrustum) return;
             r.material->setShader(m_renderer->m_shaderForwardLightingPass);
             r.material->shader->use();
             r.material->Setup();

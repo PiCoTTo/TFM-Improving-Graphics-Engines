@@ -362,10 +362,10 @@ void nimo::SceneRenderer::updateFrustumCulling(const nimo::TransformComponent& c
             if (enabledFrustumCulling)
             {
                 SceneRenderer::AABB aabb(t.Translation, t.Scale.x, t.Scale.y, t.Scale.z);
-                m.inFrustrum = aabb.isOnFrustum(frustum, t.Translation);
+                m.inFrustum = aabb.isOnFrustum(frustum, t.Translation);
             }
             else
-                m.inFrustrum = true;
+                m.inFrustum = true;
 
             entitiesDrawn++;
         });
