@@ -9,6 +9,7 @@
 #include "renderer/DebugPass.h"
 #include "renderer/DeferredPass.h"
 #include "renderer/ForwardPass.h"
+#include "glm/glm.hpp"
 
 
 struct TextVertex
@@ -92,6 +93,7 @@ nimo::SceneRenderer::SceneRenderer(bool enableDebug) :
     m_enabledDebug(enableDebug)
 {
     nimo::ExportedVariablesManager::instance()->addVariable("RENDERER_LIMIT_FPS", limitFPS);
+    nimo::ExportedVariablesManager::instance()->addVariable("RENDERER_FRUSTUM_CULLING", enabledFrustumCulling);
     nimo::ExportedVariablesManager::instance()->addVariable("RENDERER_ENTITIES_LIMIT", m_renderEntitiesLimit);
     nimo::ExportedVariablesManager::instance()->addVariable("RENDERER_LIGHT_POINTS_LIMIT", m_pointLightEntitiesLimit);
 
@@ -303,4 +305,115 @@ void nimo::SceneRenderer::updateFromChangedVariables()
 
     if (m_useDeferredShading != (renderPass != m_renderPasses.end()))
         m_mustReconfigurePipeline = true;
+}
+
+nimo::SceneRenderer::Frustum nimo::SceneRenderer::getFrustumFromCamera(const nimo::TransformComponent& transform, float fov, float width, float height, float nearDist, float farDist)
+{
+    Frustum     frustum;
+
+    float aspect = width / height;
+    glm::vec3 front = transform.GetFront();
+    glm::vec3 up = transform.GetUp();
+    glm::vec3 right = transform.GetRight();
+
+    const float halfVSide = farDist * tanf(fov * .5f);
+    const float halfHSide = halfVSide * aspect;
+    const glm::vec3 frontMultFar = farDist * front;
+
+    frustum.nearFace = { transform.Translation + nearDist * front, front };
+    frustum.farFace = { transform.Translation + frontMultFar, -front };
+
+    frustum.leftFace = { transform.Translation,
+                            glm::cross(frontMultFar - right * halfHSide, up) };
+    frustum.rightFace = { transform.Translation,
+                            glm::cross(up,frontMultFar + right * halfHSide) };
+    frustum.bottomFace = { transform.Translation,
+                            glm::cross(right, frontMultFar - up * halfVSide) };
+    frustum.topFace = { transform.Translation,
+                            glm::cross(frontMultFar + up * halfVSide, right) };
+
+    //frustum.rightFace = { transform.Translation,
+    //                        glm::cross(frontMultFar - right * halfHSide, up) };
+    //frustum.leftFace = { transform.Translation,
+    //                        glm::cross(up,frontMultFar + right * halfHSide) };
+    //frustum.topFace = { transform.Translation,
+    //                        glm::cross(right, frontMultFar - up * halfVSide) };
+    //frustum.bottomFace = { transform.Translation,
+    //                        glm::cross(frontMultFar + up * halfVSide, right) };
+
+    return frustum;
+}
+
+
+void nimo::SceneRenderer::updateFrustumCulling(const nimo::TransformComponent& camTransform, const CameraComponent& camera, float viewportWidth, float viewportHeight)
+{
+    // Frustum Culling
+    unsigned int entitiesDrawn = 0;
+    if (enabledFrustumCulling)
+    {
+        auto frustum = getFrustumFromCamera(camTransform, glm::radians(camera.FOV), viewportWidth, viewportHeight, camera.ClippingPlanes.Near, camera.ClippingPlanes.Far);
+
+        m_scene->entitiesRegistry().view<ActiveComponent, IDComponent, MeshComponent, TransformComponent>().each(
+            [&](ActiveComponent& active, IDComponent& id, MeshComponent& m, TransformComponent& t)
+        {
+            if (entitiesDrawn >= m_renderEntitiesLimit) return;
+            if (!active.active) return;
+            if (!m.source) return;
+            if (enabledFrustumCulling)
+            {
+                SceneRenderer::AABB aabb(t.Translation, t.Scale.x, t.Scale.y, t.Scale.z);
+                m.inFrustrum = aabb.isOnFrustum(frustum, t.Translation);
+            }
+            else
+                m.inFrustrum = true;
+
+            entitiesDrawn++;
+        });
+    }
+}
+
+
+bool nimo::SceneRenderer::AABB::isOnFrustum(const Frustum& camFrustum, const TransformComponent& modelTransform) const
+{
+    auto modelMatrix = modelTransform.GetTransform();
+
+    //Get global scale thanks to our transform
+    const glm::vec3 globalCenter{ modelMatrix * glm::vec4(center, 1.f) };
+
+    // Scaled orientation
+    const glm::vec3 right = modelTransform.GetRight() * extents.x;
+    const glm::vec3 up = modelTransform.GetUp() * extents.y;
+    const glm::vec3 forward = modelTransform.GetFront() * extents.z;
+
+    const float newIi = std::abs(glm::dot(glm::vec3{ 1.f, 0.f, 0.f }, right)) +
+        std::abs(glm::dot(glm::vec3{ 1.f, 0.f, 0.f }, up)) +
+        std::abs(glm::dot(glm::vec3{ 1.f, 0.f, 0.f }, forward));
+
+    const float newIj = std::abs(glm::dot(glm::vec3{ 0.f, 1.f, 0.f }, right)) +
+        std::abs(glm::dot(glm::vec3{ 0.f, 1.f, 0.f }, up)) +
+        std::abs(glm::dot(glm::vec3{ 0.f, 1.f, 0.f }, forward));
+
+    const float newIk = std::abs(glm::dot(glm::vec3{ 0.f, 0.f, 1.f }, right)) +
+        std::abs(glm::dot(glm::vec3{ 0.f, 0.f, 1.f }, up)) +
+        std::abs(glm::dot(glm::vec3{ 0.f, 0.f, 1.f }, forward));
+
+    //We not need to divise scale because it's based on the half extention of the AABB
+    const AABB globalAABB(globalCenter, newIi, newIj, newIk);
+
+    return (globalAABB.isOnOrForwardPlane(camFrustum.leftFace) &&
+        globalAABB.isOnOrForwardPlane(camFrustum.rightFace) &&
+        globalAABB.isOnOrForwardPlane(camFrustum.topFace) &&
+        globalAABB.isOnOrForwardPlane(camFrustum.bottomFace) &&
+        globalAABB.isOnOrForwardPlane(camFrustum.nearFace) &&
+        globalAABB.isOnOrForwardPlane(camFrustum.farFace));
+}
+
+
+bool nimo::SceneRenderer::AABB::isOnOrForwardPlane(const Plane& plane) const
+{
+    // Compute the projection interval radius of b onto L(t) = b.c + t * p.n
+    const float r = extents.x * std::abs(plane.normal.x) +
+        extents.y * std::abs(plane.normal.y) + extents.z * std::abs(plane.normal.z);
+
+    return -r <= plane.getSignedDistanceToPlane(center);
 }

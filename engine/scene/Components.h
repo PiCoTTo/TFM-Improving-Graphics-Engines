@@ -122,6 +122,7 @@ struct SkyLightComponent{
 struct MeshComponent{
     std::shared_ptr<Mesh> source;
     unsigned int submeshIndex = 0;
+    bool inFrustum = 1;
 };
 
 struct MeshRendererComponent{

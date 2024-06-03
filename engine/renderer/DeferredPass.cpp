@@ -18,6 +18,9 @@ namespace nimo
         m_renderer->m_frameTimer.Reset();
 
         m_renderer->m_renderFrameTimer.Reset();
+
+        float width = target ? target->GetDetails().width : Application::Instance().GetWindow().GetWidth();
+        float height = target ? target->GetDetails().height : Application::Instance().GetWindow().GetHeight();
         glViewport(0, 0, target ? target->GetDetails().width : Application::Instance().GetWindow().GetWidth(), target ? target->GetDetails().height : Application::Instance().GetWindow().GetHeight());
 
         auto camTransform = cameraTransform;
@@ -35,6 +38,9 @@ namespace nimo
         glm::mat4 viewMatrix = camTransform.GetView();
         auto viewPosition = glm::vec3(camTransform.Translation.x, camTransform.Translation.y, camTransform.Translation.z);
 
+        // Frustum Culling
+        m_renderer->updateFrustumCulling(camTransform, cam, width, height);
+
         m_renderer->m_geometryFrameTimer.Reset();
         // Render scene into gbuffer
         glEnable(GL_DEPTH_TEST);
@@ -45,7 +51,7 @@ namespace nimo
             if (entitiesDrawn >= m_renderer->m_renderEntitiesLimit) return;
             if (!active.active) return;
             r.material->restoreShader();
-            if (!r.material || !r.material->shader || !m.source) return;
+            if (!r.material || !r.material->shader || !m.source || !m.inFrustrum) return;
             r.material->shader->use();
             r.material->Setup();
             r.material->shader->Set("viewPos", viewPosition);
@@ -74,7 +80,7 @@ namespace nimo
             m_renderer->m_scene->entitiesRegistry().view<ActiveComponent, IDComponent, MeshComponent>().each([&](ActiveComponent& active, IDComponent& id, MeshComponent& m) {
                 if (entitiesDrawn >= m_renderer->m_renderEntitiesLimit) return;
                 if (!active.active) return;
-                if (!m.source) return;
+                if (!m.source || !m.inFrustrum) return;
                 m_renderer->m_shaderDepth->Set("transform", m_renderer->m_scene->GetWorldSpaceTransformMatrix(m_renderer->m_scene->GetEntity(id.Id)));
                 Renderer::DrawMesh(*m.source->GetSubmesh(m.submeshIndex));
                 entitiesDrawn++;

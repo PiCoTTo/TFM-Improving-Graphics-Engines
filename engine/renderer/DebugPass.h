@@ -41,7 +41,6 @@ namespace nimo
 		bool applyRequested{ false };
 		bool revertRequested{ false };
 
-		std::shared_ptr<nimo::SceneRenderer> m_renderer;
 		nimo::RendererStats m_displayedStats;
 		nimo::RendererStats m_emptyDisplayedStats;
 		bool m_resetDisplayedStats{ false };

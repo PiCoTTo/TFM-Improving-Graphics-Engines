@@ -8,6 +8,8 @@
 
 namespace nimo
 {
+    class RenderPass;
+
     enum class RenderPassId
     {
         Deferred,
@@ -28,11 +30,68 @@ namespace nimo
     class SceneRenderer : public std::enable_shared_from_this<SceneRenderer>
     {
     public:
+        struct Plane
+        {
+            Plane() {}
+            Plane(const glm::vec3& p1, const glm::vec3& norm)
+                : position(p1),
+                normal(glm::normalize(norm)),
+                distance(glm::dot(normal, p1))
+            {}
+
+            glm::vec3 position{ 0.f, 0.f, 0.f };
+            glm::vec3 normal{ 0.f, 0.f, 0.f };
+            float distance{ 0.f };
+
+            float getSignedDistanceToPlane(const glm::vec3& point) const
+            {
+                return glm::dot(normal, point) - distance;
+            }
+        };
+
+        struct Frustum
+        {
+            Plane topFace;
+            Plane bottomFace;
+            Plane rightFace;
+            Plane leftFace;
+
+            Plane farFace;
+            Plane nearFace;
+        };
+
+        struct BoundingVolume
+        {
+            virtual bool isOnFrustum(const Frustum& camFrustum,
+                const nimo::TransformComponent& modelTransform) const = 0;
+        };
+
+        struct AABB : public BoundingVolume
+        {
+            glm::vec3 center{ 0.f, 0.f, 0.f };
+            glm::vec3 extents{ 0.f, 0.f, 0.f };
+
+            AABB(const glm::vec3& min, const glm::vec3& max)
+                : BoundingVolume{},
+                center{ (max + min) * 0.5f },
+                extents{ max.x - center.x, max.y - center.y, max.z - center.z }
+            {}
+
+            AABB(const glm::vec3& inCenter, float iI, float iJ, float iK)
+                : BoundingVolume{}, center{ inCenter }, extents{ iI, iJ, iK }
+            {}
+
+            bool isOnFrustum(const Frustum& camFrustum, const TransformComponent& modelTransform) const;
+            bool isOnOrForwardPlane(const Plane& plane) const;
+        };
+
         SceneRenderer(bool enableDebug = false);
         ~SceneRenderer();
 
-        bool limitFPS = false;
-        bool m_enabledDebug = false;
+        bool limitFPS{ true };
+        bool m_useDeferredShading{ false };
+        bool enabledFrustumCulling{ false };
+        bool m_enabledDebug{ false };
 
         inline float currentFrameTime() const
         {
@@ -50,10 +109,17 @@ namespace nimo
         }
 
         void initialize();
+
         void SetScene(std::shared_ptr<Scene> scene);
+
         void update(float deltaTime = 0);
+
         void Render(std::shared_ptr<FrameBuffer> target = {}, const CameraComponent& cameraSettings = {}, const TransformComponent& cameraTransform = {}, float deltaTime = 0);
+
         void updateFromChangedVariables();
+
+        void updateFrustumCulling(const nimo::TransformComponent& camTransform, const CameraComponent& camera, float viewportWidth, float viewportHeight);
+
     public:
         Timer m_frameTimer;
         float m_frameTime;
@@ -108,7 +174,8 @@ namespace nimo
         std::shared_ptr<SceneRenderer> m_renderer;
 
         bool m_mustReconfigurePipeline{ false };
-        bool m_useDeferredShading{ true };
+
+        Frustum getFrustumFromCamera(const nimo::TransformComponent& transform, float fov, float width, float height, float nearDist, float farDist);
     };
 } // namespace nimo
 

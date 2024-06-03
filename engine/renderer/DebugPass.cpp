@@ -16,7 +16,7 @@
 namespace nimo
 {
     DebugPass::DebugPass(std::shared_ptr<SceneRenderer> renderer) :
-        m_renderer(renderer),
+        RenderPass(renderer),
         m_shadersEditorViewEnabled(true)
     {
         // Analyze dump file
