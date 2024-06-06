@@ -114,6 +114,7 @@ nimo::SceneRenderer::SceneRenderer(bool enableDebug) :
     gBufferDetails.colorAttachments.push_back({ GL_RGB16F, GL_RGB, GL_FLOAT });
     gBufferDetails.colorAttachments.push_back({ GL_RGB16F, GL_RGB, GL_FLOAT });
     gBufferDetails.colorAttachments.push_back({ GL_RGB16F, GL_RGB, GL_FLOAT });
+    gBufferDetails.colorAttachments.push_back({ GL_RGB16F, GL_RGB, GL_FLOAT });
     m_gBuffer = std::make_shared<FrameBuffer>(gBufferDetails);
     // HDR color buffer
     FrameBuffer::Details hdrColorBufferDetails;
@@ -123,6 +124,16 @@ nimo::SceneRenderer::SceneRenderer(bool enableDebug) :
     hdrColorBufferDetails.clearDepthOnBind = true;
     hdrColorBufferDetails.colorAttachments.push_back({ GL_RGBA16F, GL_RGB, GL_FLOAT });
     m_hdrColorBuffer = std::make_shared<FrameBuffer>(hdrColorBufferDetails);
+    // HDR FSR2 color buffer
+    //FrameBuffer::Details hdrFsrColorBufferDetails;
+    //renderWidth = 1920 / fsr2Ratio;
+    //renderHeight = 1080 / fsr2Ratio;
+    //hdrFsrColorBufferDetails.width = renderWidth;
+    //hdrFsrColorBufferDetails.height = renderHeight;
+    //hdrFsrColorBufferDetails.clearColorOnBind = true;
+    //hdrFsrColorBufferDetails.clearDepthOnBind = true;
+    //hdrFsrColorBufferDetails.colorAttachments.push_back({ GL_RGBA16F, GL_RGB, GL_FLOAT });
+    //m_hdrFsrColorBuffer = std::make_shared<FrameBuffer>(hdrFsrColorBufferDetails);
     // HDR brightness buffer
     FrameBuffer::Details hdrBrightnessBufferDetails;
     hdrBrightnessBufferDetails.width = 960;

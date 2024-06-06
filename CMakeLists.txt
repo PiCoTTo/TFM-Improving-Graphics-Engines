@@ -106,6 +106,9 @@ add_library(freetype2 INTERFACE)
 target_include_directories(freetype2 INTERFACE ${CMAKE_SOURCE_DIR}/third_party/freetype2/v2.13.0/include)
 target_link_libraries(assimp INTERFACE ${CMAKE_SOURCE_DIR}/third_party/freetype2/v2.13.0/static/vs2015-2022/win64/freetype.lib)
 
+add_library(fsr2 INTERFACE)
+target_include_directories(fsr2 INTERFACE ${CMAKE_SOURCE_DIR}/third_party/fsr2/include)
+
 add_subdirectory(${CMAKE_SOURCE_DIR}/engine)
 add_subdirectory(${CMAKE_SOURCE_DIR}/editor)
 add_subdirectory(${CMAKE_SOURCE_DIR}/runtime)

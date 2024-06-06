@@ -35,6 +35,7 @@ public:
     void BindColorTexture(int id, unsigned int slot);
     void BindDepthTexture(unsigned int slot);
     unsigned int GetColorAttachmentId(int id) {return m_textureAttachments[id];}
+    unsigned int GetDepthTextureId() { return m_renderBuffer; }
     inline const Details& GetDetails(){return m_details; }
     inline float GetAspectRatio(){return (float)m_details.width/(float)m_details.height; }
     void CopyDepthTo(std::shared_ptr<FrameBuffer> destination);

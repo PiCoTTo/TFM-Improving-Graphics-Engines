@@ -65,6 +65,7 @@ spdlog
 lua
 miniaudio
 freetype2
+fsr2
 )
 
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /MT")

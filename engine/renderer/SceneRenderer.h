@@ -91,6 +91,7 @@ namespace nimo
         bool limitFPS{ true };
         bool m_useDeferredShading{ false };
         bool enabledFrustumCulling{ false };
+        bool enabledFSR2{ false };
         bool m_enabledDebug{ false };
 
         inline float currentFrameTime() const
@@ -132,6 +133,7 @@ namespace nimo
         std::shared_ptr<FrameBuffer> m_directionalLightDepthBuffer;
         std::shared_ptr<FrameBuffer> m_gBuffer;
         std::shared_ptr<FrameBuffer> m_hdrColorBuffer;
+        std::shared_ptr<FrameBuffer> m_hdrFsrColorBuffer;
         std::shared_ptr<FrameBuffer> m_hdrBrightnessBuffer;
         std::shared_ptr<FrameBuffer> m_hdrBloomDownsample1Buffer;
         std::shared_ptr<FrameBuffer> m_hdrBloomDownsample2Buffer;
@@ -168,7 +170,20 @@ namespace nimo
         unsigned int m_renderEntitiesLimit{ 724 };
         unsigned int m_pointLightEntitiesLimit{ 32 };
 
+        // FSR2 variables
+        //uint32_t renderWidth;
+        //uint32_t renderHeight;
+        //uint32_t frameIndex = 0;
+        //uint32_t seed = pcg_hash(17);
+
+        //bool fsr2FirstInit = true;
+        //float fsr2Sharpness = 0;
+        //float fsr2Ratio = 1.7f; // FFX_FSR2_QUALITY_MODE_BALANCED
+        //FfxFsr2Context fsr2Context;
+        //std::unique_ptr<char[]> fsr2ScratchMemory;
+
     private:
+        // Render passes variables
         std::vector < std::pair < RenderPassId, std::shared_ptr<nimo::RenderPass> > > m_renderPasses;
         std::shared_ptr<nimo::RenderPass> m_debugPass;
         std::shared_ptr<SceneRenderer> m_renderer;
