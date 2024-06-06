@@ -10,20 +10,20 @@
 
 namespace nimo
 {
-    //static glm::vec2 GetJitterOffset(uint32_t frameIndex, uint32_t renderWidth, uint32_t renderHeight, uint32_t windowWidth)
-    //{
-    //    float jitterX{};
-    //    float jitterY{};
-    //    ffxFsr2GetJitterOffset(&jitterX, &jitterY, frameIndex, ffxFsr2GetJitterPhaseCount(renderWidth, windowWidth));
-    //    return { 2.0f * jitterX / static_cast<float>(renderWidth), 2.0f * jitterY / static_cast<float>(renderHeight) };
-    //}
+    static glm::vec2 GetJitterOffset(uint32_t frameIndex, uint32_t renderWidth, uint32_t renderHeight, uint32_t windowWidth)
+    {
+        float jitterX{};
+        float jitterY{};
+        ffxFsr2GetJitterOffset(&jitterX, &jitterY, frameIndex, ffxFsr2GetJitterPhaseCount(renderWidth, windowWidth));
+        return { 2.0f * jitterX / static_cast<float>(renderWidth), 2.0f * jitterY / static_cast<float>(renderHeight) };
+    }
 
     void DeferredPass::update(float deltaTime)
     {
-        //if (m_renderer->enabledFSR2)
-        //{
-        //    shadingUniforms.random = { rng(m_renderer->seed), rng(m_renderer->seed) };
-        //}
+        if (m_renderer->enabledFSR2)
+        {
+            shadingUniforms.random = { rng(m_renderer->seed), rng(m_renderer->seed) };
+        }
     }
 
     void DeferredPass::render(std::shared_ptr<FrameBuffer> target, const CameraComponent& cameraSettings, const TransformComponent& cameraTransform, float deltaTime)
@@ -38,8 +38,8 @@ namespace nimo
         float displayedWidth = target ? target->GetDetails().width : Application::Instance().GetWindow().GetWidth();
         float displayedHeight = target ? target->GetDetails().height : Application::Instance().GetWindow().GetHeight();
 
-        //const float fsr2LodBias = m_renderer->enabledFSR2 ? log2(float(m_renderer->renderWidth) / float(displayedWidth)) - 1.0 : 0;
-        //const auto jitterOffset = m_renderer->enabledFSR2 ? GetJitterOffset(m_renderer->frameIndex, m_renderer->renderWidth, m_renderer->renderHeight, displayedWidth) : glm::vec2{};
+        const float fsr2LodBias = m_renderer->enabledFSR2 ? log2(float(m_renderer->renderWidth) / float(displayedWidth)) - 1.0 : 0;
+        const auto jitterOffset = m_renderer->enabledFSR2 ? GetJitterOffset(m_renderer->frameIndex, m_renderer->renderWidth, m_renderer->renderHeight, displayedWidth) : glm::vec2{};
 
         glViewport(0, 0, target ? target->GetDetails().width : Application::Instance().GetWindow().GetWidth(), target ? target->GetDetails().height : Application::Instance().GetWindow().GetHeight());
 
@@ -202,42 +202,41 @@ namespace nimo
         glDepthFunc(GL_LESS);
 
         // FSR2
-        //if (m_renderer->enabledFSR2)
-        //{
-        //    float jitterX{};
-        //    float jitterY{};
-        //    ffxFsr2GetJitterOffset(&jitterX, &jitterY, frameIndex, ffxFsr2GetJitterPhaseCount(renderWidth, displayedWidth));
+        if (m_renderer->enabledFSR2)
+        {
+            float jitterX{};
+            float jitterY{};
+            ffxFsr2GetJitterOffset(&jitterX, &jitterY, m_renderer->frameIndex, ffxFsr2GetJitterPhaseCount(m_renderer->renderWidth, displayedWidth));
 
-        //    FfxFsr2DispatchDescription dispatchDesc{
-        //        .commandList = {},
-        //        .color = ffxGetTextureResourceGL(m_renderer->m_hdrFsrColorBuffer->GetColorAttachmentId(0), renderWidth, renderHeight, GL_R11F_G11F_B10F),
-        //        .depth = ffxGetTextureResourceGL(m_renderer->m_hdrFsrColorBuffer->GetDepthTextureId(), renderWidth, renderHeight, GL_DEPTH_COMPONENT32F),
-        //        .motionVectors = ffxGetTextureResourceGL(m_renderer->m_hdrFsrColorBuffer->GetColorAttachmentId(5), renderWidth, renderHeight, GL_RG16F),
-        //        .exposure = {},
-        //        .reactive = {},
-        //        .transparencyAndComposition = {},
-        //        .output =
-        //        ffxGetTextureResourceGL(m_renderer->m_hdrColorBuffer->GetColorAttachmentId(0), displayedWidth, displayedHeight, GL_R11F_G11F_B10F),
-        //        .jitterOffset = {jitterX, jitterY},
-        //        .motionVectorScale = {float(renderWidth), float(renderHeight)},
-        //        .renderSize = {renderWidth, renderHeight},
-        //        .enableSharpening = m_renderer->fsr2Sharpness != 0,
-        //        .sharpness = m_renderer->fsr2Sharpness,
-        //        .frameTimeDelta = static_cast<float>(deltaTime * 1000.0),
-        //        .preExposure = 1,
-        //        .reset = false,
-        //        .cameraNear = cam.ClippingPlanes.Near,
-        //        .cameraFar = cam.ClippingPlanes.Far,
-        //        .cameraFovAngleVertical = cam.FOV,
-        //        .viewSpaceToMetersFactor = 1,
-        //        .deviceDepthNegativeOneToOne = false,
-        //    };
+            FfxFsr2DispatchDescription dispatchDesc{
+                {},
+                ffxGetTextureResourceGL(m_renderer->m_gBuffer->GetColorAttachmentId(0), m_renderer->renderWidth, m_renderer->renderHeight, GL_R11F_G11F_B10F),
+                ffxGetTextureResourceGL(m_renderer->m_gBuffer->GetDepthTextureId(), m_renderer->renderWidth, m_renderer->renderHeight, GL_DEPTH_COMPONENT32F),
+                ffxGetTextureResourceGL(m_renderer->m_gBuffer->GetColorAttachmentId(4), m_renderer->renderWidth, m_renderer->renderHeight, GL_RG16F),
+                {},
+                {},
+                {},
+                ffxGetTextureResourceGL(m_hdrRenderColorBuffer->GetColorAttachmentId(0), displayedWidth, displayedHeight, GL_R11F_G11F_B10F),
+                {jitterX, jitterY},
+                {float(m_renderer->renderWidth), float(m_renderer->renderHeight)},
+                {m_renderer->renderWidth, m_renderer->renderHeight},
+                m_renderer->fsr2Sharpness != 0,
+                m_renderer->fsr2Sharpness,
+                static_cast<float>(deltaTime * 1000.0),
+                1,
+                false,
+                cam.ClippingPlanes.Near,
+                cam.ClippingPlanes.Far,
+                glm::radians(cam.FOV),
+                1,
+                false,
+            };
 
-        //    if (auto err = ffxFsr2ContextDispatch(&m_renderer->fsr2Context, &dispatchDesc); err != FFX_OK)
-        //    {
-        //        printf("FSR 2 error: %d\n", err);
-        //    }
-        //}
+            if (auto err = ffxFsr2ContextDispatch(&m_renderer->fsr2Context, &dispatchDesc); err != FFX_OK)
+            {
+                printf("FSR 2 error: %d\n", err);
+            }
+        }
 
         m_renderer->m_bloomFrameTimer.Reset();
         // Bloom

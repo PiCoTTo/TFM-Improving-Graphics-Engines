@@ -4,10 +4,19 @@
 #include "core/Timer.h"
 #include "fonts/Font.h"
 #include "renderer/RenderPass.h"
+#include "ffx_fsr2.h"
+#include "ffx_fsr2_gl.h"
 
 
 namespace nimo
 {
+    static glm::uint pcg_hash(glm::uint seed)
+    {
+        glm::uint state = seed * 747796405u + 2891336453u;
+        glm::uint word = ((state >> ((state >> 28u) + 4u)) ^ state) * 277803737u;
+        return (word >> 22u) ^ word;
+    }
+
     class RenderPass;
 
     enum class RenderPassId
@@ -171,16 +180,17 @@ namespace nimo
         unsigned int m_pointLightEntitiesLimit{ 32 };
 
         // FSR2 variables
-        //uint32_t renderWidth;
-        //uint32_t renderHeight;
-        //uint32_t frameIndex = 0;
-        //uint32_t seed = pcg_hash(17);
+        uint32_t renderWidth;
+        uint32_t renderHeight;
+        uint32_t frameIndex = 0;
+        uint32_t seed = pcg_hash(17);
 
-        //bool fsr2FirstInit = true;
-        //float fsr2Sharpness = 0;
+        bool fsr2FirstInit = true;
+        float fsr2Sharpness = 0;
         //float fsr2Ratio = 1.7f; // FFX_FSR2_QUALITY_MODE_BALANCED
-        //FfxFsr2Context fsr2Context;
-        //std::unique_ptr<char[]> fsr2ScratchMemory;
+        float fsr2Ratio = 3.0f; // FFX_FSR2_QUALITY_MODE_ULTRA_PERFORMANCE
+        FfxFsr2Context fsr2Context;
+        std::unique_ptr<char[]> fsr2ScratchMemory;
 
     private:
         // Render passes variables
@@ -189,8 +199,10 @@ namespace nimo
         std::shared_ptr<SceneRenderer> m_renderer;
 
         bool m_mustReconfigurePipeline{ false };
+        bool m_currentlyUsingFSR2{ false };
 
         Frustum getFrustumFromCamera(const nimo::TransformComponent& transform, float fov, float width, float height, float nearDist, float farDist);
+        void initFBOs(bool fsrActive = false);
     };
 } // namespace nimo
 

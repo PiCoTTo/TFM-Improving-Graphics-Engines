@@ -108,6 +108,11 @@ target_link_libraries(assimp INTERFACE ${CMAKE_SOURCE_DIR}/third_party/freetype2
 
 add_library(fsr2 INTERFACE)
 target_include_directories(fsr2 INTERFACE ${CMAKE_SOURCE_DIR}/third_party/fsr2/include)
+# target_link_libraries(fsr2 INTERFACE ${CMAKE_SOURCE_DIR}/third_party/fsr2/ffx_fsr2_api_gl_x64.lib)
+target_link_libraries(fsr2 INTERFACE optimized ${CMAKE_SOURCE_DIR}/third_party/fsr2/ffx_fsr2_api_x64.lib)
+target_link_libraries(fsr2 INTERFACE optimized ${CMAKE_SOURCE_DIR}/third_party/fsr2/ffx_fsr2_api_gl_x64.lib)
+target_link_libraries(fsr2 INTERFACE debug ${CMAKE_SOURCE_DIR}/third_party/fsr2/ffx_fsr2_api_x64d.lib)
+target_link_libraries(fsr2 INTERFACE debug ${CMAKE_SOURCE_DIR}/third_party/fsr2/ffx_fsr2_api_gl_x64d.lib)
 
 add_subdirectory(${CMAKE_SOURCE_DIR}/engine)
 add_subdirectory(${CMAKE_SOURCE_DIR}/editor)

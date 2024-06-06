@@ -98,7 +98,7 @@ struct CameraComponent{
         Perspective,
         Orthographic
     } Projection{Projection::Perspective};
-    float FOV = 60.0f;
+    float FOV = 56.0f;
     struct ClippingPlanes{
         float Near{0.1f};
         float Far{100.0f};
