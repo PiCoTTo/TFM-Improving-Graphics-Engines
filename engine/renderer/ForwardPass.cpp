@@ -10,7 +10,7 @@
 
 namespace nimo
 {
-	void ForwardPass::render(std::shared_ptr<FrameBuffer> target, const CameraComponent& cameraSettings, const TransformComponent& cameraTransform, float deltaTime)
+	void ForwardPass::render(std::shared_ptr<FrameBuffer> target, CameraComponent& cameraSettings, const TransformComponent& cameraTransform, float deltaTime)
 	{
         // Performance metrics
         m_renderer->m_frameTimer.Stop();
@@ -39,7 +39,7 @@ namespace nimo
         auto viewPosition = glm::vec3(camTransform.Translation.x, camTransform.Translation.y, camTransform.Translation.z);
 
         // Frustum Culling
-        m_renderer->updateFrustumCulling(camTransform, cam, width, height);
+        m_renderer->updateFrustumCulling(camTransform, cameraSettings, width, height);
 
         // Lighting
         m_renderer->m_lightingFrameTimer.Reset();
@@ -51,7 +51,7 @@ namespace nimo
         if (directionalLightEntities.size())
         {
             Entity directionalLight(*directionalLightEntities.begin(), m_renderer->m_scene->entitiesRegistry());
-            glCullFace(GL_FRONT);
+            glCullFace(GL_FRONT_AND_BACK);
             m_renderer->m_directionalLightDepthBuffer->Bind();
             m_renderer->m_shaderDepth->use();
             auto directionalLightView = directionalLight.GetComponent<TransformComponent>().GetView();
@@ -61,7 +61,7 @@ namespace nimo
             m_renderer->m_scene->entitiesRegistry().view<ActiveComponent, IDComponent, MeshComponent>().each([&](ActiveComponent& active, IDComponent& id, MeshComponent& m) {
                 if (entitiesDrawn >= m_renderer->m_renderEntitiesLimit) return;
                 if (!active.active) return;
-                if (!m.source || !m.inFrustum) return;
+                if (!m.source || (m_renderer->enabledFrustumCulling && !m.inFrustum)) return;
                 m_renderer->m_shaderDepth->Set("transform", m_renderer->m_scene->GetWorldSpaceTransformMatrix(m_renderer->m_scene->GetEntity(id.Id)));
                 Renderer::DrawMesh(*m.source->GetSubmesh(m.submeshIndex));
                 entitiesDrawn++;
@@ -92,6 +92,7 @@ namespace nimo
         int currentLights = 0;
         m_renderer->m_scene->entitiesRegistry().view<IDComponent, ActiveComponent, PointLightComponent, TransformComponent>().each([&](IDComponent id, ActiveComponent active, PointLightComponent& light, TransformComponent& lightTransform)
         {
+            if (currentLights >= m_renderer->m_pointLightEntitiesLimit) return;
             if (!active.active) return;
             glm::vec3 scale;
             glm::quat rotation;
@@ -133,10 +134,11 @@ namespace nimo
         // Render scene
         glEnable(GL_DEPTH_TEST);
         glDepthMask(GL_TRUE);
+        entitiesDrawn = 0;
         m_renderer->m_scene->entitiesRegistry().view<ActiveComponent, IDComponent, MeshComponent, MeshRendererComponent>().each([&](ActiveComponent& active, IDComponent& id, MeshComponent& m, MeshRendererComponent& r) {
             if (entitiesDrawn >= m_renderer->m_renderEntitiesLimit) return;
             if (!active.active) return;
-            if (!r.material || !r.material->shader || !m.source || !m.inFrustum) return;
+            if (!r.material || !r.material->shader || !m.source || (m_renderer->enabledFrustumCulling && !m.inFrustum)) return;
             r.material->setShader(m_renderer->m_shaderForwardLightingPass);
             r.material->shader->use();
             r.material->Setup();
@@ -380,6 +382,5 @@ namespace nimo
         glDisable(GL_BLEND);
         m_renderer->m_geometry2DFrameTimer.Stop();
         m_renderer->m_renderFrameTimer.Stop();
-        m_renderer->m_scene = {};
 	}
 }

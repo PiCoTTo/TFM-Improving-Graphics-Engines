@@ -14,7 +14,7 @@ namespace nimo
 		virtual ~RenderPass() {}
 
 		virtual void update(float deltaTime = 0) {}
-		virtual void render(std::shared_ptr<FrameBuffer> target = {}, const CameraComponent& cameraSettings = {}, const TransformComponent& cameraTransform = {}, float deltaTime = 0) {}
+		virtual void render(std::shared_ptr<FrameBuffer> target, CameraComponent& cameraSettings, const TransformComponent& cameraTransform = {}, float deltaTime = 0) {}
 
 	protected:
 		std::shared_ptr<SceneRenderer> m_renderer;

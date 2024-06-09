@@ -10,7 +10,7 @@
 
 namespace nimo
 {
- 	void DeferredPass::render(std::shared_ptr<FrameBuffer> target, const CameraComponent& cameraSettings, const TransformComponent& cameraTransform, float deltaTime)
+ 	void DeferredPass::render(std::shared_ptr<FrameBuffer> target, CameraComponent& cameraSettings, const TransformComponent& cameraTransform, float deltaTime)
 	{
         // Performance metrics
         m_renderer->m_frameTimer.Stop();
@@ -39,7 +39,7 @@ namespace nimo
         auto viewPosition = glm::vec3(camTransform.Translation.x, camTransform.Translation.y, camTransform.Translation.z);
 
         // Frustum Culling
-        m_renderer->updateFrustumCulling(camTransform, cam, width, height);
+        m_renderer->updateFrustumCulling(camTransform, cameraSettings, width, height);
 
         m_renderer->m_geometryFrameTimer.Reset();
         // Render scene into gbuffer
@@ -70,7 +70,7 @@ namespace nimo
         if (directionalLightEntities.size())
         {
             Entity directionalLight(*directionalLightEntities.begin(), m_renderer->m_scene->entitiesRegistry());
-            glCullFace(GL_FRONT);
+            glCullFace(GL_FRONT_AND_BACK);
             m_renderer->m_directionalLightDepthBuffer->Bind();
             m_renderer->m_shaderDepth->use();
             auto directionalLightView = directionalLight.GetComponent<TransformComponent>().GetView();
@@ -120,7 +120,7 @@ namespace nimo
         int currentLights = 0;
         m_renderer->m_scene->entitiesRegistry().view<IDComponent, ActiveComponent, PointLightComponent, TransformComponent>().each([&](IDComponent id, ActiveComponent active, PointLightComponent& light, TransformComponent& lightTransform)
         {
-            if (entitiesDrawn >= m_renderer->m_pointLightEntitiesLimit) return;
+            if (currentLights >= m_renderer->m_pointLightEntitiesLimit) return;
             if (!active.active) return;
             glm::vec3 scale;
             glm::quat rotation;
@@ -391,6 +391,5 @@ namespace nimo
         glDisable(GL_BLEND);
         m_renderer->m_geometry2DFrameTimer.Stop();
         m_renderer->m_renderFrameTimer.Stop();
-        m_renderer->m_scene = {};
 	}
 }

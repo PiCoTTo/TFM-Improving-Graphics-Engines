@@ -12,6 +12,6 @@ namespace nimo
 		DeferredPass(std::shared_ptr<SceneRenderer> renderer) : RenderPass(renderer) {}
 
 		// From RenderPass
-		void render(std::shared_ptr<FrameBuffer> target = {}, const CameraComponent& cameraSettings = {}, const TransformComponent& cameraTransform = {}, float deltaTime = 0) override;
+		void render(std::shared_ptr<FrameBuffer> target, CameraComponent& cameraSettings, const TransformComponent& cameraTransform = {}, float deltaTime = 0) override;
 	};
 }

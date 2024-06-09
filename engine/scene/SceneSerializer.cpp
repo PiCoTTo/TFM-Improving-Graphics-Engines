@@ -241,7 +241,7 @@ nimo::GUID nimo::AssetSerializer<nimo::Scene>::DeserializeEntity(const std::shar
         id = GUID::Create();
     nimo::Entity createdEntity = scene->CreateEntityWithID(id);
     bool exportVariables{ false };
-    if (source.contains("PointLight") || source.contains("AudioSource"))
+    if (source.contains("PointLight") || source.contains("AudioSource") || source.contains("Camera") || source.contains("Mesh"))
     {
         exportVariables = true;
     }
@@ -267,7 +267,11 @@ nimo::GUID nimo::AssetSerializer<nimo::Scene>::DeserializeEntity(const std::shar
             t.Rotation = Rotation;
             t.Scale = Scale;
             if (exportVariables)
+            {
                 nimo::ExportedVariablesManager::instance()->addVariable(createdEntity.GetComponent<LabelComponent>().Label + "_Translation", t.Translation);
+                nimo::ExportedVariablesManager::instance()->addVariable(createdEntity.GetComponent<LabelComponent>().Label + "_Rotation", t.Rotation);
+                nimo::ExportedVariablesManager::instance()->addVariable(createdEntity.GetComponent<LabelComponent>().Label + "_Scale", t.Scale);
+            }
         }
         if(field.key() == "Family")
         {
