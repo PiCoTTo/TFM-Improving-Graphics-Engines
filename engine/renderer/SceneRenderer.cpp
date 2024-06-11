@@ -99,6 +99,9 @@ nimo::SceneRenderer::SceneRenderer(bool enableDebug) :
     nimo::ExportedVariablesManager::instance()->addVariable("RENDERER_LIGHT_POINTS_LIMIT", m_pointLightEntitiesLimit);
     nimo::ExportedVariablesManager::instance()->addVariable("RENDERER_FSR2", enabledFSR2);
 
+    if (enabledFSR2)
+        initFSR2();
+
     // Directional Light buffer
     FrameBuffer::Details directionalLightBufferDetails;
     directionalLightBufferDetails.width = 4096;
@@ -107,15 +110,7 @@ nimo::SceneRenderer::SceneRenderer(bool enableDebug) :
     directionalLightBufferDetails.colorAttachments.push_back({ GL_RGB16F, GL_RGB, GL_FLOAT });
     m_directionalLightDepthBuffer = std::make_shared<FrameBuffer>(directionalLightBufferDetails);
     // GBuffer
-    initFBOs();
-    // HDR color buffer
-    FrameBuffer::Details hdrColorBufferDetails;
-    hdrColorBufferDetails.width = 1920;
-    hdrColorBufferDetails.height = 1080;
-    hdrColorBufferDetails.clearColorOnBind = true;
-    hdrColorBufferDetails.clearDepthOnBind = true;
-    hdrColorBufferDetails.colorAttachments.push_back({ GL_RGBA16F, GL_RGB, GL_FLOAT });
-    m_hdrColorBuffer = std::make_shared<FrameBuffer>(hdrColorBufferDetails);
+    initFBOs(enabledFSR2);
     // HDR brightness buffer
     FrameBuffer::Details hdrBrightnessBufferDetails;
     hdrBrightnessBufferDetails.width = 960;
@@ -213,6 +208,8 @@ nimo::SceneRenderer::SceneRenderer(bool enableDebug) :
     m_vboText->Bind();
     m_vboText->ApplyLayout();
 
+    m_currentlyUsingFSR2 = enabledFSR2;
+
     ExportedVariablesManager::instance()->addVariable("RENDERER_USE_DEFERRED", m_useDeferredShading);
 }
 
@@ -256,33 +253,11 @@ void nimo::SceneRenderer::update(float deltaTime)
         }
         if (enabledFSR2)
         {
-            renderWidth = 1920 / fsr2Ratio;
-            renderHeight = 1080 / fsr2Ratio;
-
-            FfxFsr2ContextDescription contextDesc{
-                FFX_FSR2_ENABLE_DEBUG_CHECKING | FFX_FSR2_ENABLE_AUTO_EXPOSURE | FFX_FSR2_ENABLE_HIGH_DYNAMIC_RANGE |
-                        FFX_FSR2_ALLOW_NULL_DEVICE_AND_COMMAND_LIST,
-                {renderWidth, renderHeight},
-                {1920, 1080},
-                {},
-                {},
-                [](FfxFsr2MsgType type, const wchar_t* message)
-                {
-                char cstr[256] = {};
-                wcstombs_s(nullptr, cstr, sizeof(cstr), message, sizeof(cstr));
-                cstr[255] = '\0';
-                printf("FSR 2 message (type=%d): %s\n", type, cstr);
-                },
-            };
-            fsr2ScratchMemory = std::make_unique<char[]>(ffxFsr2GetScratchMemorySizeGL());
-            ffxFsr2GetInterfaceGL(&contextDesc.callbacks, fsr2ScratchMemory.get(), ffxFsr2GetScratchMemorySizeGL(), glfwGetProcAddress);
-            if (ffxFsr2ContextCreate(&fsr2Context, &contextDesc) != FFX_OK)
-            {
-                NIMO_ERROR("Error initializing FSR2 !");
-            }
+            initFSR2();
         }
 
         initFBOs(enabledFSR2);
+
         m_currentlyUsingFSR2 = enabledFSR2;
     }
 
@@ -376,6 +351,35 @@ nimo::SceneRenderer::Frustum nimo::SceneRenderer::getFrustumFromCamera(const nim
     return frustum;
 }
 
+void nimo::SceneRenderer::initFSR2()
+{
+    frameIndex = 0;
+    renderWidth = 1920 / fsr2Ratio;
+    renderHeight = 1080 / fsr2Ratio;
+
+    FfxFsr2ContextDescription contextDesc{
+        FFX_FSR2_ENABLE_DEBUG_CHECKING | FFX_FSR2_ENABLE_AUTO_EXPOSURE | FFX_FSR2_ENABLE_HIGH_DYNAMIC_RANGE |
+                FFX_FSR2_ALLOW_NULL_DEVICE_AND_COMMAND_LIST, // flags
+        {renderWidth, renderHeight}, // maxRenderSize
+        {1920, 1080}, // displaySize
+        {}, // callBacks
+        {}, // device
+        [](FfxFsr2MsgType type, const wchar_t* message) // fpMessage
+        {
+        char cstr[256] = {};
+        wcstombs_s(nullptr, cstr, sizeof(cstr), message, sizeof(cstr));
+        cstr[255] = '\0';
+        printf("FSR 2 message (type=%d): %s\n", type, cstr);
+        },
+    };
+    fsr2ScratchMemory = std::make_unique<char[]>(ffxFsr2GetScratchMemorySizeGL());
+    ffxFsr2GetInterfaceGL(&contextDesc.callbacks, fsr2ScratchMemory.get(), ffxFsr2GetScratchMemorySizeGL(), glfwGetProcAddress);
+    if (ffxFsr2ContextCreate(&fsr2Context, &contextDesc) != FFX_OK)
+    {
+        NIMO_ERROR("Error initializing FSR2 !");
+    }
+}
+
 
 void nimo::SceneRenderer::initFBOs(bool fsrActive)
 {
@@ -385,21 +389,31 @@ void nimo::SceneRenderer::initFBOs(bool fsrActive)
     gBufferDetails.height = fsrActive ? renderHeight : 1080;
     gBufferDetails.clearColorOnBind = true;
     gBufferDetails.clearDepthOnBind = true;
-    gBufferDetails.colorAttachments.push_back({ fsrActive ? GL_R11F_G11F_B10F : GL_RGB16F, GL_RGB, GL_FLOAT }); // Albedo
-    gBufferDetails.colorAttachments.push_back({ GL_RGB16F, GL_RGB, GL_FLOAT });
-    gBufferDetails.colorAttachments.push_back({ GL_RGB16F, GL_RGB, GL_FLOAT });
-    gBufferDetails.colorAttachments.push_back({ GL_RGB16F, GL_RGB, GL_FLOAT });
-    gBufferDetails.colorAttachments.push_back({ fsrActive ? GL_RG16F : GL_RGB16F, fsrActive ? GL_RG : GL_RGB, GL_FLOAT }); // Motion
+    gBufferDetails.colorAttachments.push_back({ fsrActive ? GL_R11F_G11F_B10F : GL_RGB16F, GL_RGB, GL_FLOAT, "gPosition" }); // Positions
+    gBufferDetails.colorAttachments.push_back({ GL_RGB16F, GL_RGB, GL_FLOAT, "gNormal" }); // Normals
+    gBufferDetails.colorAttachments.push_back({ GL_RGB16F, GL_RGB, GL_FLOAT, "gNormal" }); // Normals
+    gBufferDetails.colorAttachments.push_back({ GL_RGB16F, GL_RGB, GL_FLOAT, "gAlbedo" }); // Albedo
+    gBufferDetails.colorAttachments.push_back({ GL_RGB16F, GL_RGB, GL_FLOAT, "gARM" }); // ARM
+    gBufferDetails.colorAttachments.push_back({ GL_RG16F, GL_RG, GL_FLOAT, "gMotion" }); // Motion vectors
     m_gBuffer = std::make_shared<FrameBuffer>(gBufferDetails);
 
     // HDR FSR2 color buffer
     FrameBuffer::Details hdrFsrColorBufferDetails;
     hdrFsrColorBufferDetails.width = renderWidth;
     hdrFsrColorBufferDetails.height = renderHeight;
-    hdrFsrColorBufferDetails.clearColorOnBind = true;
-    hdrFsrColorBufferDetails.clearDepthOnBind = true;
-    hdrFsrColorBufferDetails.colorAttachments.push_back({ GL_RGBA16F, GL_RGB, GL_FLOAT });
+//    hdrFsrColorBufferDetails.clearColorOnBind = true;
+//    hdrFsrColorBufferDetails.clearDepthOnBind = true;
+    hdrFsrColorBufferDetails.colorAttachments.push_back({ GL_R11F_G11F_B10F, GL_RGB, GL_FLOAT, "colorHdrRenderRes" });
     m_hdrFsrColorBuffer = std::make_shared<FrameBuffer>(hdrFsrColorBufferDetails);
+
+    // HDR color buffer
+    FrameBuffer::Details hdrColorBufferDetails;
+    hdrColorBufferDetails.width = 1920;
+    hdrColorBufferDetails.height = 1080;
+    //hdrColorBufferDetails.clearColorOnBind = true;
+    //hdrColorBufferDetails.clearDepthOnBind = true;
+    hdrColorBufferDetails.colorAttachments.push_back({ fsrActive ? GL_R11F_G11F_B10F : GL_RGBA16F, GL_RGB, GL_FLOAT, "colorHdrWindowRes" });
+    m_hdrColorBuffer = std::make_shared<FrameBuffer>(hdrColorBufferDetails);
 }
 
 

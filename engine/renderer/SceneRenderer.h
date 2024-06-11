@@ -4,8 +4,8 @@
 #include "core/Timer.h"
 #include "fonts/Font.h"
 #include "renderer/RenderPass.h"
-#include "ffx_fsr2.h"
-#include "ffx_fsr2_gl.h"
+#include "src/ffx-fsr2-api/ffx_fsr2.h"
+#include "src/ffx-fsr2-api/gl/ffx_fsr2_gl.h"
 
 
 namespace nimo
@@ -98,9 +98,9 @@ namespace nimo
         ~SceneRenderer();
 
         bool limitFPS{ true };
-        bool m_useDeferredShading{ false };
+        bool m_useDeferredShading{ true };
         bool enabledFrustumCulling{ false };
-        bool enabledFSR2{ false };
+        bool enabledFSR2{ true };
         bool m_enabledDebug{ false };
 
         inline float currentFrameTime() const
@@ -187,8 +187,8 @@ namespace nimo
 
         bool fsr2FirstInit = true;
         float fsr2Sharpness = 0;
-        //float fsr2Ratio = 1.7f; // FFX_FSR2_QUALITY_MODE_BALANCED
-        float fsr2Ratio = 3.0f; // FFX_FSR2_QUALITY_MODE_ULTRA_PERFORMANCE
+        float fsr2Ratio = 1.7f; // FFX_FSR2_QUALITY_MODE_BALANCED
+        //float fsr2Ratio = 3.0f; // FFX_FSR2_QUALITY_MODE_ULTRA_PERFORMANCE
         FfxFsr2Context fsr2Context;
         std::unique_ptr<char[]> fsr2ScratchMemory;
 
@@ -202,6 +202,7 @@ namespace nimo
         bool m_currentlyUsingFSR2{ false };
 
         Frustum getFrustumFromCamera(const nimo::TransformComponent& transform, float fov, float width, float height, float nearDist, float farDist);
+        void initFSR2();
         void initFBOs(bool fsrActive = false);
     };
 } // namespace nimo

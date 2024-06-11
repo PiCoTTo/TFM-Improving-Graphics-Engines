@@ -17,6 +17,8 @@ nimo::FrameBuffer::FrameBuffer(const FrameBuffer::Details& details)
         glGenTextures(1, &m_textureAttachments[i]);
         glBindTexture(GL_TEXTURE_2D, m_textureAttachments[i]);
         glTexImage2D(GL_TEXTURE_2D, 0, m_details.colorAttachments[i].internalFormat, m_details.width, m_details.height, 0, m_details.colorAttachments[i].format, m_details.colorAttachments[i].type, 0);
+        if (!m_details.colorAttachments[i].name.empty())
+            glObjectLabel(GL_TEXTURE, m_textureAttachments[i], m_details.colorAttachments[i].name.length(), m_details.colorAttachments[i].name.data());
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
@@ -35,7 +37,10 @@ nimo::FrameBuffer::FrameBuffer(const FrameBuffer::Details& details)
     // Create and attach depth buffer (renderbuffer)
     glGenTextures(1, &m_renderBuffer);
     glBindTexture(GL_TEXTURE_2D, m_renderBuffer);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32, m_details.width, m_details.height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, 0);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32F, m_details.width, m_details.height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, 0);
+    //glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32, m_details.width, m_details.height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, 0);
+    std::string_view depthName("gDepth");
+    glObjectLabel(GL_TEXTURE, m_renderBuffer, depthName.length(), depthName.data());
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);

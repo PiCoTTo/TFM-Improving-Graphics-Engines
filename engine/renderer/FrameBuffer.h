@@ -2,6 +2,8 @@
 #include <glm/glm.hpp>
 #include <vector>
 #include <memory>
+#include <string_view>
+
 
 namespace nimo{
 class FrameBuffer{
@@ -17,6 +19,7 @@ public:
         int internalFormat;
         int format;
         int type;
+        std::string_view name = "";
     };
     struct Details{
         uint32_t width = 0;

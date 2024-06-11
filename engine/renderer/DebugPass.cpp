@@ -16,8 +16,7 @@
 namespace nimo
 {
     DebugPass::DebugPass(std::shared_ptr<SceneRenderer> renderer) :
-        RenderPass(renderer),
-        m_shadersEditorViewEnabled(true)
+        RenderPass(renderer)
     {
         // Analyze dump file
         std::vector<std::string> lines(10, ",");
@@ -68,6 +67,9 @@ namespace nimo
 
         if (nimo::Input::GetKey(nimo::KeyCode::LeftAlt) && nimo::Input::GetKeyPressed(nimo::KeyCode::S))
             m_shadersEditorViewEnabled = !m_shadersEditorViewEnabled;
+
+        if (nimo::Input::GetKey(nimo::KeyCode::LeftAlt) && nimo::Input::GetKeyPressed(nimo::KeyCode::F))
+            m_fbosViewEnabled = !m_fbosViewEnabled;
 
         m_renderer->m_scene->entitiesRegistry().view<ActiveComponent, ScriptComponent, CameraComponent>().each([&](ActiveComponent& active, ScriptComponent& script, CameraComponent& camera)
         {
@@ -423,6 +425,142 @@ namespace nimo
                 m_openShaders.erase(closedShader);
 
             ImGui::EndTabBar();
+
+            ImGui::End();
+        }
+
+        if (m_fbosViewEnabled)
+        {
+            ImGui::SetNextWindowSize(ImVec2(400, 300), ImGuiCond_FirstUseEver);
+
+            ImGui::Begin("FBOs", &m_fbosViewEnabled, ImGuiWindowFlags_NoCollapse);
+
+            if (ImGui::TreeNode("GBuffer"))
+            {
+                if (ImGui::TreeNode("Positions"))
+                {
+                    ImGui::Image((ImTextureID)(uint64_t)m_renderer->m_gBuffer->GetColorAttachmentId(0), ImVec2(ImGui::GetContentRegionAvailWidth(), ImGui::GetContentRegionAvailWidth() / m_renderer->m_gBuffer->GetAspectRatio()), ImVec2(0, 1), ImVec2(1, 0));
+                    ImGui::TreePop();
+                }
+                if (ImGui::TreeNode("Normals"))
+                {
+                    ImGui::Image((ImTextureID)(uint64_t)m_renderer->m_gBuffer->GetColorAttachmentId(1), ImVec2(ImGui::GetContentRegionAvailWidth(), ImGui::GetContentRegionAvailWidth() / m_renderer->m_gBuffer->GetAspectRatio()), ImVec2(0, 1), ImVec2(1, 0));
+                    ImGui::TreePop();
+                }
+                if (ImGui::TreeNode("Albedo"))
+                {
+                    ImGui::Image((ImTextureID)(uint64_t)m_renderer->m_gBuffer->GetColorAttachmentId(2), ImVec2(ImGui::GetContentRegionAvailWidth(), ImGui::GetContentRegionAvailWidth() / m_renderer->m_gBuffer->GetAspectRatio()), ImVec2(0, 1), ImVec2(1, 0));
+                    ImGui::TreePop();
+                }
+                if (ImGui::TreeNode("ARM"))
+                {
+                    ImGui::Image((ImTextureID)(uint64_t)m_renderer->m_gBuffer->GetColorAttachmentId(3), ImVec2(ImGui::GetContentRegionAvailWidth(), ImGui::GetContentRegionAvailWidth() / m_renderer->m_gBuffer->GetAspectRatio()), ImVec2(0, 1), ImVec2(1, 0));
+                    ImGui::TreePop();
+                }
+                if (m_renderer->enabledFSR2)
+                {
+                    if (ImGui::TreeNode("FSR2 Motion Vectors"))
+                    {
+                        ImGui::Image((ImTextureID)(uint64_t)m_renderer->m_gBuffer->GetColorAttachmentId(4), ImVec2(ImGui::GetContentRegionAvailWidth(), ImGui::GetContentRegionAvailWidth() / m_renderer->m_gBuffer->GetAspectRatio()), ImVec2(0, 1), ImVec2(1, 0));
+                        ImGui::TreePop();
+                    }
+                }
+                ImGui::TreePop();
+            }
+
+            if (ImGui::TreeNode("Shadow Map"))
+            {
+                ImGui::Image((ImTextureID)(uint64_t)m_renderer->m_directionalLightDepthBuffer->GetColorAttachmentId(0), ImVec2(ImGui::GetContentRegionAvailWidth(), ImGui::GetContentRegionAvailWidth() / m_renderer->m_directionalLightDepthBuffer->GetAspectRatio()), ImVec2(0, 1), ImVec2(1, 0));
+                ImGui::TreePop();
+            }
+
+            if (ImGui::TreeNode("FSR2"))
+            {
+                ImGui::Image((ImTextureID)(uint64_t)m_renderer->m_hdrFsrColorBuffer->GetColorAttachmentId(0), ImVec2(ImGui::GetContentRegionAvailWidth(), ImGui::GetContentRegionAvailWidth() / m_renderer->m_directionalLightDepthBuffer->GetAspectRatio()), ImVec2(0, 1), ImVec2(1, 0));
+                ImGui::TreePop();
+            }
+
+            if (ImGui::TreeNode("Lighting"))
+            {
+                ImGui::Image((ImTextureID)(uint64_t)m_renderer->m_hdrColorBuffer->GetColorAttachmentId(0), ImVec2(ImGui::GetContentRegionAvailWidth(), ImGui::GetContentRegionAvailWidth() / m_renderer->m_hdrColorBuffer->GetAspectRatio()), ImVec2(0, 1), ImVec2(1, 0));
+                ImGui::TreePop();
+            }
+
+            if (ImGui::TreeNode("Blooming"))
+            {
+                if (ImGui::TreeNode("Result"))
+                {
+                    ImGui::Image((ImTextureID)(uint64_t)m_renderer->m_hdrFinalBloomBuffer->GetColorAttachmentId(0), ImVec2(ImGui::GetContentRegionAvailWidth(), ImGui::GetContentRegionAvailWidth() / m_renderer->m_hdrFinalBloomBuffer->GetAspectRatio()), ImVec2(0, 1), ImVec2(1, 0));
+                    ImGui::TreePop();
+                }
+                if (ImGui::TreeNode("Bright threshold"))
+                {
+                    ImGui::Image((ImTextureID)(uint64_t)m_renderer->m_hdrBrightnessBuffer->GetColorAttachmentId(0), ImVec2(ImGui::GetContentRegionAvailWidth(), ImGui::GetContentRegionAvailWidth() / m_renderer->m_hdrBrightnessBuffer->GetAspectRatio()), ImVec2(0, 1), ImVec2(1, 0));
+                    ImGui::TreePop();
+                }
+                if (ImGui::TreeNode("Downsampling"))
+                {
+                    static int bloomDownsample = 0;
+                    ImGui::SliderInt("##BloomDownsample", &bloomDownsample, 0, 5, "%d", ImGuiSliderFlags_AlwaysClamp);
+                    switch (bloomDownsample)
+                    {
+                    case 0:
+                        ImGui::Image((ImTextureID)(uint64_t)m_renderer->m_hdrBloomDownsample1Buffer->GetColorAttachmentId(0), ImVec2(ImGui::GetContentRegionAvailWidth(), ImGui::GetContentRegionAvailWidth() / m_renderer->m_hdrBloomDownsample1Buffer->GetAspectRatio()), ImVec2(0, 1), ImVec2(1, 0));
+                        break;
+                    case 1:
+                        ImGui::Image((ImTextureID)(uint64_t)m_renderer->m_hdrBloomDownsample2Buffer->GetColorAttachmentId(0), ImVec2(ImGui::GetContentRegionAvailWidth(), ImGui::GetContentRegionAvailWidth() / m_renderer->m_hdrBloomDownsample2Buffer->GetAspectRatio()), ImVec2(0, 1), ImVec2(1, 0));
+                        break;
+                    case 2:
+                        ImGui::Image((ImTextureID)(uint64_t)m_renderer->m_hdrBloomDownsample3Buffer->GetColorAttachmentId(0), ImVec2(ImGui::GetContentRegionAvailWidth(), ImGui::GetContentRegionAvailWidth() / m_renderer->m_hdrBloomDownsample3Buffer->GetAspectRatio()), ImVec2(0, 1), ImVec2(1, 0));
+                        break;
+                    case 3:
+                        ImGui::Image((ImTextureID)(uint64_t)m_renderer->m_hdrBloomDownsample4Buffer->GetColorAttachmentId(0), ImVec2(ImGui::GetContentRegionAvailWidth(), ImGui::GetContentRegionAvailWidth() / m_renderer->m_hdrBloomDownsample4Buffer->GetAspectRatio()), ImVec2(0, 1), ImVec2(1, 0));
+                        break;
+                    case 4:
+                        ImGui::Image((ImTextureID)(uint64_t)m_renderer->m_hdrBloomDownsample5Buffer->GetColorAttachmentId(0), ImVec2(ImGui::GetContentRegionAvailWidth(), ImGui::GetContentRegionAvailWidth() / m_renderer->m_hdrBloomDownsample5Buffer->GetAspectRatio()), ImVec2(0, 1), ImVec2(1, 0));
+                        break;
+                    case 5:
+                        ImGui::Image((ImTextureID)(uint64_t)m_renderer->m_hdrBloomDownsample6Buffer->GetColorAttachmentId(0), ImVec2(ImGui::GetContentRegionAvailWidth(), ImGui::GetContentRegionAvailWidth() / m_renderer->m_hdrBloomDownsample6Buffer->GetAspectRatio()), ImVec2(0, 1), ImVec2(1, 0));
+                        break;
+
+                    default:
+                        break;
+                    }
+                    ImGui::TreePop();
+                }
+
+                if (ImGui::TreeNode("Upsampling"))
+                {
+                    static int bloomUpsample = 0;
+                    ImGui::SliderInt("##BloomUpsample", &bloomUpsample, 0, 5, "%d", ImGuiSliderFlags_AlwaysClamp);
+                    switch (bloomUpsample)
+                    {
+                    case 0:
+                        ImGui::Image((ImTextureID)(uint64_t)m_renderer->m_hdrBloomUpsample1Buffer->GetColorAttachmentId(0), ImVec2(ImGui::GetContentRegionAvailWidth(), ImGui::GetContentRegionAvailWidth() / m_renderer->m_hdrBloomUpsample1Buffer->GetAspectRatio()), ImVec2(0, 1), ImVec2(1, 0));
+                        break;
+                    case 1:
+                        ImGui::Image((ImTextureID)(uint64_t)m_renderer->m_hdrBloomUpsample2Buffer->GetColorAttachmentId(0), ImVec2(ImGui::GetContentRegionAvailWidth(), ImGui::GetContentRegionAvailWidth() / m_renderer->m_hdrBloomUpsample2Buffer->GetAspectRatio()), ImVec2(0, 1), ImVec2(1, 0));
+                        break;
+                    case 2:
+                        ImGui::Image((ImTextureID)(uint64_t)m_renderer->m_hdrBloomUpsample3Buffer->GetColorAttachmentId(0), ImVec2(ImGui::GetContentRegionAvailWidth(), ImGui::GetContentRegionAvailWidth() / m_renderer->m_hdrBloomUpsample3Buffer->GetAspectRatio()), ImVec2(0, 1), ImVec2(1, 0));
+                        break;
+                    case 3:
+                        ImGui::Image((ImTextureID)(uint64_t)m_renderer->m_hdrBloomUpsample4Buffer->GetColorAttachmentId(0), ImVec2(ImGui::GetContentRegionAvailWidth(), ImGui::GetContentRegionAvailWidth() / m_renderer->m_hdrBloomUpsample4Buffer->GetAspectRatio()), ImVec2(0, 1), ImVec2(1, 0));
+                        break;
+                    case 4:
+                        ImGui::Image((ImTextureID)(uint64_t)m_renderer->m_hdrBloomUpsample5Buffer->GetColorAttachmentId(0), ImVec2(ImGui::GetContentRegionAvailWidth(), ImGui::GetContentRegionAvailWidth() / m_renderer->m_hdrBloomUpsample5Buffer->GetAspectRatio()), ImVec2(0, 1), ImVec2(1, 0));
+                        break;
+                    case 5:
+                        ImGui::Image((ImTextureID)(uint64_t)m_renderer->m_hdrBloomUpsample6Buffer->GetColorAttachmentId(0), ImVec2(ImGui::GetContentRegionAvailWidth(), ImGui::GetContentRegionAvailWidth() / m_renderer->m_hdrBloomUpsample6Buffer->GetAspectRatio()), ImVec2(0, 1), ImVec2(1, 0));
+                        break;
+
+                    default:
+                        break;
+                    }
+                    ImGui::TreePop();
+                }
+                ImGui::TreePop();
+            }
 
             ImGui::End();
         }

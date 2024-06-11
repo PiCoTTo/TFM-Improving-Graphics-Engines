@@ -38,6 +38,7 @@ namespace nimo
 		bool m_statsViewEnabled{ true };
 		bool m_exportedVariablesViewEnabled{ true };
 		bool m_shadersEditorViewEnabled{ false };
+		bool m_fbosViewEnabled{ true };
 		bool applyRequested{ false };
 		bool revertRequested{ false };
 

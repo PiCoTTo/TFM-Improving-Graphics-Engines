@@ -107,8 +107,9 @@ target_include_directories(freetype2 INTERFACE ${CMAKE_SOURCE_DIR}/third_party/f
 target_link_libraries(assimp INTERFACE ${CMAKE_SOURCE_DIR}/third_party/freetype2/v2.13.0/static/vs2015-2022/win64/freetype.lib)
 
 add_library(fsr2 INTERFACE)
-target_include_directories(fsr2 INTERFACE ${CMAKE_SOURCE_DIR}/third_party/fsr2/include)
-# target_link_libraries(fsr2 INTERFACE ${CMAKE_SOURCE_DIR}/third_party/fsr2/ffx_fsr2_api_gl_x64.lib)
+target_include_directories(fsr2 INTERFACE ${CMAKE_SOURCE_DIR}/third_party/fsr2)
+target_include_directories(fsr2 INTERFACE ${CMAKE_SOURCE_DIR}/third_party/fsr2/src/ffx-fsr2-api/shaders/gl)
+#target_link_libraries(fsr2 INTERFACE ${CMAKE_SOURCE_DIR}/third_party/fsr2/ffx_fsr2_api_gl_x64.lib)
 target_link_libraries(fsr2 INTERFACE optimized ${CMAKE_SOURCE_DIR}/third_party/fsr2/ffx_fsr2_api_x64.lib)
 target_link_libraries(fsr2 INTERFACE optimized ${CMAKE_SOURCE_DIR}/third_party/fsr2/ffx_fsr2_api_gl_x64.lib)
 target_link_libraries(fsr2 INTERFACE debug ${CMAKE_SOURCE_DIR}/third_party/fsr2/ffx_fsr2_api_x64d.lib)

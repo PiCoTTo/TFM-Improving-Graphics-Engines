@@ -26,8 +26,12 @@ namespace nimo
         }
     }
 
+    glm::mat4 oldViewProjUnjittered;
+
     void DeferredPass::render(std::shared_ptr<FrameBuffer> target, const CameraComponent& cameraSettings, const TransformComponent& cameraTransform, float deltaTime)
 	{
+        m_renderer->frameIndex++;
+
         // Performance metrics
         m_renderer->m_frameTimer.Stop();
         m_renderer->m_frameTime = m_renderer->m_frameTimer.ElapsedMillis();
@@ -38,13 +42,20 @@ namespace nimo
         float displayedWidth = target ? target->GetDetails().width : Application::Instance().GetWindow().GetWidth();
         float displayedHeight = target ? target->GetDetails().height : Application::Instance().GetWindow().GetHeight();
 
+        auto camTransform = cameraTransform;
+        auto cam = cameraSettings;
+
         const float fsr2LodBias = m_renderer->enabledFSR2 ? log2(float(m_renderer->renderWidth) / float(displayedWidth)) - 1.0 : 0;
         const auto jitterOffset = m_renderer->enabledFSR2 ? GetJitterOffset(m_renderer->frameIndex, m_renderer->renderWidth, m_renderer->renderHeight, displayedWidth) : glm::vec2{};
+        const auto jitterMatrix = glm::translate(glm::mat4(1), glm::vec3(jitterOffset, 0));
+        const auto projUnjittered = glm::perspectiveNO(glm::radians(cam.FOV), m_renderer->renderWidth / (float)m_renderer->renderHeight, cam.ClippingPlanes.Near, cam.ClippingPlanes.Far);
+        const auto projJittered = jitterMatrix * projUnjittered;
+
+        const auto viewProj = projJittered * cameraTransform.GetView();
+        const auto viewProjUnjittered = projUnjittered * cameraTransform.GetView();
 
         glViewport(0, 0, target ? target->GetDetails().width : Application::Instance().GetWindow().GetWidth(), target ? target->GetDetails().height : Application::Instance().GetWindow().GetHeight());
 
-        auto camTransform = cameraTransform;
-        auto cam = cameraSettings;
         glm::mat4 projection = glm::perspectiveFov(glm::radians(cam.FOV),
             target ? (float)target->GetDetails().width : (float)Application::Instance().GetWindow().GetWidth(),
             target ? (float)target->GetDetails().height : (float)Application::Instance().GetWindow().GetHeight(),
@@ -78,9 +89,13 @@ namespace nimo
             r.material->shader->Set("transform", m_renderer->m_scene->GetWorldSpaceTransformMatrix(m_renderer->m_scene->GetEntity(id.Id)));
             r.material->shader->Set("view", viewMatrix);
             r.material->shader->Set("projection", projection);
+            r.material->shader->Set("oldViewProjUnjittered", m_renderer->frameIndex == 1 ? viewProjUnjittered : oldViewProjUnjittered);
+            r.material->shader->Set("viewProjUnjittered", viewProjUnjittered);
+            r.material->shader->Set("fsr2Enabled", m_renderer->enabledFSR2);
             Renderer::DrawMesh(*m.source->GetSubmesh(m.submeshIndex));
             entitiesDrawn++;
         });
+        oldViewProjUnjittered = viewProjUnjittered;
         m_renderer->m_geometryFrameTimer.Stop();
 
         m_renderer->m_lightingFrameTimer.Reset();
@@ -199,45 +214,56 @@ namespace nimo
             }
         }
         renderCube2();
-        glDepthFunc(GL_LESS);
 
         // FSR2
         if (m_renderer->enabledFSR2)
         {
+            std::string_view name("FSR 2");
+            //glPushDebugGroup(GL_DEBUG_SOURCE_APPLICATION, 0, static_cast<GLsizei>(name.size()), name.data());
+
+            if (m_renderer->frameIndex == 1)
+            {
+                deltaTime = 17.0 / 1000.0;
+            }
+
             float jitterX{};
             float jitterY{};
             ffxFsr2GetJitterOffset(&jitterX, &jitterY, m_renderer->frameIndex, ffxFsr2GetJitterPhaseCount(m_renderer->renderWidth, displayedWidth));
 
             FfxFsr2DispatchDescription dispatchDesc{
-                {},
-                ffxGetTextureResourceGL(m_renderer->m_gBuffer->GetColorAttachmentId(0), m_renderer->renderWidth, m_renderer->renderHeight, GL_R11F_G11F_B10F),
-                ffxGetTextureResourceGL(m_renderer->m_gBuffer->GetDepthTextureId(), m_renderer->renderWidth, m_renderer->renderHeight, GL_DEPTH_COMPONENT32F),
-                ffxGetTextureResourceGL(m_renderer->m_gBuffer->GetColorAttachmentId(4), m_renderer->renderWidth, m_renderer->renderHeight, GL_RG16F),
-                {},
-                {},
-                {},
-                ffxGetTextureResourceGL(m_hdrRenderColorBuffer->GetColorAttachmentId(0), displayedWidth, displayedHeight, GL_R11F_G11F_B10F),
-                {jitterX, jitterY},
-                {float(m_renderer->renderWidth), float(m_renderer->renderHeight)},
-                {m_renderer->renderWidth, m_renderer->renderHeight},
-                m_renderer->fsr2Sharpness != 0,
-                m_renderer->fsr2Sharpness,
-                static_cast<float>(deltaTime * 1000.0),
-                1,
-                false,
-                cam.ClippingPlanes.Near,
-                cam.ClippingPlanes.Far,
-                glm::radians(cam.FOV),
-                1,
-                false,
+                {}, // commandList
+                ffxGetTextureResourceGL(m_hdrRenderColorBuffer->GetColorAttachmentId(0), m_renderer->renderWidth, m_renderer->renderHeight, GL_R11F_G11F_B10F), // color
+                ffxGetTextureResourceGL(m_renderer->m_gBuffer->GetDepthTextureId(), m_renderer->renderWidth, m_renderer->renderHeight, GL_DEPTH_COMPONENT32F), // depth
+                ffxGetTextureResourceGL(m_renderer->m_gBuffer->GetColorAttachmentId(4), m_renderer->renderWidth, m_renderer->renderHeight, GL_RG16F), // motionVectors
+                {}, // exposure
+                {}, // reactive
+                {}, // transparencyAndComposition
+                ffxGetTextureResourceGL(m_renderer->m_hdrColorBuffer->GetColorAttachmentId(0), displayedWidth, displayedHeight, GL_R11F_G11F_B10F), // output
+                {jitterX, jitterY}, // jitterOffset
+                {float(m_renderer->renderWidth), float(m_renderer->renderHeight)}, // motionVectorScale
+                {m_renderer->renderWidth, m_renderer->renderHeight}, // renderSize
+                m_renderer->fsr2Sharpness != 0, // enableSharpening
+                m_renderer->fsr2Sharpness, // sharpness
+                static_cast<float>(deltaTime * 1000.0), // frameTimeDelta
+                1, // preExposure
+                false, // reset
+                cam.ClippingPlanes.Near, // cameraNear
+                cam.ClippingPlanes.Far, // cameraFar
+                glm::radians(cam.FOV), // cameraFovAngleVertical
+                1, // viewSpaceToMetersFacter
+                false, // deviceDepthNegativeOneToOne
             };
 
             if (auto err = ffxFsr2ContextDispatch(&m_renderer->fsr2Context, &dispatchDesc); err != FFX_OK)
             {
                 printf("FSR 2 error: %d\n", err);
             }
+
+            glMemoryBarrier(GL_TEXTURE_FETCH_BARRIER_BIT);
+            //glPopDebugGroup();
         }
 
+        glDepthFunc(GL_LESS);
         m_renderer->m_bloomFrameTimer.Reset();
         // Bloom
         // Get bright pixels in buffer

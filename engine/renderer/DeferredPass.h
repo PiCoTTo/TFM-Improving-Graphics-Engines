@@ -2,8 +2,8 @@
 #include "RenderPass.h"
 #include "Renderer.h"
 #include "renderer/SceneRenderer.h"
-#include "ffx_fsr2.h"
-#include "ffx_fsr2_gl.h"
+#include "src/ffx-fsr2-api/ffx_fsr2.h"
+#include "src/ffx-fsr2-api/gl/ffx_fsr2_gl.h"
 
 namespace nimo
 {
