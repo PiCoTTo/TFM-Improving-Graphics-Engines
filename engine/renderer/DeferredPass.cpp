@@ -26,9 +26,10 @@ namespace nimo
         }
     }
 
+
     glm::mat4 oldViewProjUnjittered;
 
-    void DeferredPass::render(std::shared_ptr<FrameBuffer> target, const CameraComponent& cameraSettings, const TransformComponent& cameraTransform, float deltaTime)
+    void DeferredPass::render(std::shared_ptr<FrameBuffer> target, CameraComponent& cameraSettings, const TransformComponent& cameraTransform, float deltaTime)
 	{
         m_renderer->frameIndex++;
 
@@ -105,7 +106,7 @@ namespace nimo
         if (directionalLightEntities.size())
         {
             Entity directionalLight(*directionalLightEntities.begin(), m_renderer->m_scene->entitiesRegistry());
-            glCullFace(GL_FRONT);
+            glCullFace(GL_FRONT_AND_BACK);
             m_renderer->m_directionalLightDepthBuffer->Bind();
             m_renderer->m_shaderDepth->use();
             auto directionalLightView = directionalLight.GetComponent<TransformComponent>().GetView();
@@ -157,7 +158,7 @@ namespace nimo
         int currentLights = 0;
         m_renderer->m_scene->entitiesRegistry().view<IDComponent, ActiveComponent, PointLightComponent, TransformComponent>().each([&](IDComponent id, ActiveComponent active, PointLightComponent& light, TransformComponent& lightTransform)
         {
-            if (entitiesDrawn >= m_renderer->m_pointLightEntitiesLimit) return;
+            if (currentLights >= m_renderer->m_pointLightEntitiesLimit) return;
             if (!active.active) return;
             glm::vec3 scale;
             glm::quat rotation;
@@ -476,6 +477,5 @@ namespace nimo
         glDisable(GL_BLEND);
         m_renderer->m_geometry2DFrameTimer.Stop();
         m_renderer->m_renderFrameTimer.Stop();
-        m_renderer->m_scene = {};
 	}
 }

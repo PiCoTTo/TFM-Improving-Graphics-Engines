@@ -11,6 +11,9 @@
 #include <algorithm>
 #include "imgui_internal.h"
 #include <string>
+#include "core/Application.h"
+#include "glad/glad.h"
+#include "scene/Components.h"
 
 
 namespace nimo
@@ -55,6 +58,8 @@ namespace nimo
 
             csvFile.close();
         }
+
+        nimo::ExportedVariablesManager::instance()->addVariable("DEBUG_DRAW_OBB", m_obbDrawEnabled);
     }
 
     void DebugPass::update(float deltaTime)
@@ -192,10 +197,61 @@ namespace nimo
     }
 
 
-    void DebugPass::render(std::shared_ptr<FrameBuffer> target, const CameraComponent& cameraSettings, const TransformComponent& cameraTransform, float deltaTime)
+    void DebugPass::render(std::shared_ptr<FrameBuffer> target, CameraComponent& cameraSettings, const TransformComponent& cameraTransform, float deltaTime)
     {
         if (!m_renderer->mustRender())
             return;
+
+        if (m_obbDrawEnabled)
+        {
+            float width = target ? target->GetDetails().width : Application::Instance().GetWindow().GetWidth();
+            float height = target ? target->GetDetails().height : Application::Instance().GetWindow().GetHeight();
+            glViewport(0, 0, target ? target->GetDetails().width : Application::Instance().GetWindow().GetWidth(), target ? target->GetDetails().height : Application::Instance().GetWindow().GetHeight());
+
+            auto camTransform = cameraTransform;
+            auto cam = cameraSettings;
+            glm::mat4 projection = glm::perspectiveFov(glm::radians(cam.FOV),
+                target ? (float)target->GetDetails().width : (float)Application::Instance().GetWindow().GetWidth(),
+                target ? (float)target->GetDetails().height : (float)Application::Instance().GetWindow().GetHeight(),
+                cam.ClippingPlanes.Near, cam.ClippingPlanes.Far);
+            glm::mat4 projectionOrtho = glm::ortho(
+                -(target ? (float)target->GetDetails().width : (float)Application::Instance().GetWindow().GetWidth()) * 0.5f,
+                (target ? (float)target->GetDetails().width : (float)Application::Instance().GetWindow().GetWidth()) * 0.5f,
+                -(target ? (float)target->GetDetails().height : (float)Application::Instance().GetWindow().GetHeight()) * 0.5f,
+                (target ? (float)target->GetDetails().height : (float)Application::Instance().GetWindow().GetHeight()) * 0.5f,
+                -0.1f, cam.ClippingPlanes.Far);
+            glm::mat4 viewMatrix = camTransform.GetView();
+            auto viewPosition = glm::vec3(camTransform.Translation.x, camTransform.Translation.y, camTransform.Translation.z);
+
+            FrameBuffer::Unbind();
+            m_renderer->m_shaderUnlitColor->use();
+            m_renderer->m_shaderUnlitColor->Set("view", viewMatrix);
+            m_renderer->m_shaderUnlitColor->Set("projection", projection);
+            m_renderer->m_shaderUnlitColor->Set("color", glm::vec3(0.f, 1.f, 0.f));
+            unsigned int entitiesDrawn = 0;
+            m_renderer->m_scene->entitiesRegistry().view<ActiveComponent, IDComponent, MeshComponent, TransformComponent>().each(
+                [&](ActiveComponent& active, IDComponent& id, MeshComponent& m, TransformComponent& t)
+            {
+                if (entitiesDrawn >= m_renderer->m_renderEntitiesLimit) return;
+                if (!active.active) return;
+                if (!m.source || !m.inFrustum) return;
+
+                m_renderer->m_shaderUnlitColor->Set("transform", m_renderer->m_scene->GetWorldSpaceTransformMatrix(m_renderer->m_scene->GetEntity(id.Id)));
+
+                auto oob = m.source->getOOB();
+                renderOOB(oob);
+
+                entitiesDrawn++;
+            });
+            if (m_renderer->enabledFrustumCulling)
+            {
+                //m_renderer->m_shaderUnlitColor->Set("transform", glm::mat4(1.0f));
+                //m_renderer->m_shaderUnlitColor->Set("transform", cameraTransform.GetTransform());
+                //m_renderer->m_shaderUnlitColor->Set("color", glm::vec3(1.f, 0.f, 0.f));
+                //if(cam.frustum)
+                //    renderFrustum(cam.frustum);
+            }
+        }
 
         // Stats GUI
         //if (!m_statsViewEnabled) return;
@@ -253,6 +309,16 @@ namespace nimo
             ImGui::Begin("Variables", &m_exportedVariablesViewEnabled, ImGuiWindowFlags_NoCollapse);
 
             ImGui::Button("\tRestore\t");
+
+            auto cameraParam = static_cast<glm::vec3*>(&cameraTransform.GetFront());
+            ImGui::DragFloat3("Camera Forward", &cameraParam->x, 0.05f);
+            if (m_renderer->enabledFrustumCulling)
+            {
+                glm::vec3 frustumParam(cameraSettings.frustum->visibleVertices[static_cast<int>(Frustum::FrustumVertice::FarBottomLeft)]);
+                ImGui::DragFloat3("Frustum Min (far bottom left)", &frustumParam.x, 0.05f);
+                frustumParam = cameraSettings.frustum->visibleVertices[static_cast<int>(Frustum::FrustumVertice::NearTopRight)];
+                ImGui::DragFloat3("Frustum Max (near top right)", &frustumParam.x, 0.05f);
+            }
 
             bool anythingChanged{ false };
             for (const auto& exportedVariablePair : ExportedVariablesManager::instance()->variables())
@@ -317,7 +383,6 @@ namespace nimo
             //    //ImGui::SameLine();
             //    ImGui::InputDouble("##d", &d);
             //}
-
 
             ImGui::End();
         }
@@ -612,6 +677,125 @@ namespace nimo
         labelID += label;
 
         return labelID;
+    }
+
+
+    unsigned int cubeVAO2 = 0;
+    unsigned int cubeVBO2 = 0;
+
+    void DebugPass::renderOOB(const std::shared_ptr<OOB>& oob)
+    {
+        // Top face
+        glm::vec3 top1{ oob->center.x - oob->extents.x, oob->center.y + oob->extents.y, oob->center.z + oob->extents.z };
+        glm::vec3 top2{ oob->center.x - oob->extents.x, oob->center.y + oob->extents.y, oob->center.z - oob->extents.z };
+        glm::vec3 top3{ oob->center.x + oob->extents.x, oob->center.y + oob->extents.y, oob->center.z - oob->extents.z };
+        glm::vec3 top4{ oob->center.x + oob->extents.x, oob->center.y + oob->extents.y, oob->center.z + oob->extents.z };
+
+        auto sizeX = top3 - top2;
+
+        // Bottom face
+        glm::vec3 bot1{ oob->center.x - oob->extents.x, oob->center.y - oob->extents.y, oob->center.z + oob->extents.z };
+        glm::vec3 bot2{ oob->center.x - oob->extents.x, oob->center.y - oob->extents.y, oob->center.z - oob->extents.z };
+        glm::vec3 bot3{ oob->center.x + oob->extents.x, oob->center.y - oob->extents.y, oob->center.z - oob->extents.z };
+        glm::vec3 bot4{ oob->center.x + oob->extents.x, oob->center.y - oob->extents.y, oob->center.z + oob->extents.z };
+
+        // initialize (if necessary)
+        //if (cubeVAO2 == 0)
+        //{
+            float vertices[] = {
+                // top lines
+                top1.x, top1.y, top1.z, top2.x, top2.y, top2.z,
+                top2.x, top2.y, top2.z, top3.x, top3.y, top3.z,
+                top3.x, top3.y, top3.z, top4.x, top4.y, top4.z,
+                top4.x, top4.y, top4.z, top1.x, top1.y, top1.z,
+
+                // bottom lines
+                bot1.x, bot1.y, bot1.z, bot2.x, bot2.y, bot2.z,
+                bot2.x, bot2.y, bot2.z, bot3.x, bot3.y, bot3.z,
+                bot3.x, bot3.y, bot3.z, bot4.x, bot4.y, bot4.z,
+                bot4.x, bot4.y, bot4.z, bot1.x, bot1.y, bot1.z,
+
+                // side lines
+                top1.x, top1.y, top1.z, bot1.x, bot1.y, bot1.z,
+                top2.x, top2.y, top2.z, bot2.x, bot2.y, bot2.z,
+                top3.x, top3.y, top3.z, bot3.x, bot3.y, bot3.z,
+                top4.x, top4.y, top4.z, bot4.x, bot4.y, bot4.z
+            };
+            glGenVertexArrays(1, &cubeVAO2);
+            glGenBuffers(1, &cubeVBO2);
+            // fill buffer
+            glBindBuffer(GL_ARRAY_BUFFER, cubeVBO2);
+            glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+            // link vertex attributes
+            glBindVertexArray(cubeVAO2);
+            glEnableVertexAttribArray(0);
+            glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+            glBindBuffer(GL_ARRAY_BUFFER, 0);
+            glBindVertexArray(0);
+        //}
+        // render Cube
+        glDisable(GL_DEPTH_TEST);
+
+        glBindVertexArray(cubeVAO2);
+        glDrawArrays(GL_LINES, 0, 32);
+        glBindVertexArray(0);
+    }
+
+    unsigned int frustumVAO2 = 0;
+    unsigned int frustumVBO2 = 0;
+
+    void DebugPass::renderFrustum(const std::shared_ptr<Frustum>& frustum)
+    {
+        glm::vec3 farBL     = frustum->visibleVertices[0];
+        glm::vec3 farTL     = frustum->visibleVertices[1];
+        glm::vec3 farTR     = frustum->visibleVertices[2];
+        glm::vec3 farBR     = frustum->visibleVertices[3];
+        glm::vec3 nearBL    = frustum->visibleVertices[4];
+        glm::vec3 nearTL    = frustum->visibleVertices[5];
+        glm::vec3 nearTR    = frustum->visibleVertices[6];
+        glm::vec3 nearBR    = frustum->visibleVertices[7];
+
+        float vertices[] = {
+            // far plane
+            farBL.x, farBL.y, farBL.z, farTL.x, farTL.y, farTL.z,
+            farTL.x, farTL.y, farTL.z, farTR.x, farTR.y, farTR.z,
+            farTR.x, farTR.y, farTR.z, farBR.x, farBR.y, farBR.z,
+            farBR.x, farBR.y, farBR.z, farBL.x, farBL.y, farBL.z,
+
+            ////// near plane
+            //nearBL.x, nearBL.y, nearBL.z, nearTL.x, nearTL.y, nearTL.z,
+            //nearTL.x, nearTL.y, nearTL.z, nearTR.x, nearTR.y, nearTR.z,
+            //nearTR.x, nearTR.y, nearTR.z, nearBR.x, nearBR.y, nearBR.z,
+            //nearBR.x, nearBR.y, nearBR.z, nearBL.x, nearBL.y, nearBL.z,
+
+            ////// side lines
+            //farBL.x, farBL.y, farBL.z, nearBL.x, nearBL.y, nearBL.z,
+            //farTL.x, farTL.y, farTL.z, nearTL.x, nearTL.y, nearTL.z,
+            //farTR.x, farTR.y, farTR.z, nearTR.x, nearTR.y, nearTR.z,
+            //farBR.x, farBR.y, farBR.z, nearBR.x, nearBR.y, nearBR.z
+        };
+
+        if (frustumVAO2 == 0)
+        {
+            glGenVertexArrays(1, &frustumVAO2);
+            glGenBuffers(1, &frustumVBO2);
+            // fill buffer
+            glBindBuffer(GL_ARRAY_BUFFER, frustumVBO2);
+            glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+            // link vertex attributes
+            glBindVertexArray(frustumVAO2);
+            glEnableVertexAttribArray(0);
+            glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+            glBindBuffer(GL_ARRAY_BUFFER, 0);
+            glBindVertexArray(0);
+        }
+
+        // render Cube
+        glDisable(GL_DEPTH_TEST);
+
+        glBindVertexArray(frustumVAO2);
+        glDrawArrays(GL_LINES, 0, sizeof(vertices) / 3);
+        glBindVertexArray(0);
     }
 
 

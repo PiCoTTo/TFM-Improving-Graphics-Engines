@@ -4,6 +4,7 @@
 #include "renderer/SceneRenderer.h"
 #include "imgui.h"
 
+
 namespace nimo
 {
 	struct PerformanceSample
@@ -32,13 +33,14 @@ namespace nimo
 
 		// From RenderPass
 		void update(float deltaTime) override;
-		void render(std::shared_ptr<FrameBuffer> target, const CameraComponent& cameraSettings, const TransformComponent& cameraTransform, float deltaTime) override;
+		void render(std::shared_ptr<FrameBuffer> target, CameraComponent& cameraSettings, const TransformComponent& cameraTransform, float deltaTime) override;
 
 	private:
 		bool m_statsViewEnabled{ true };
 		bool m_exportedVariablesViewEnabled{ true };
 		bool m_shadersEditorViewEnabled{ false };
 		bool m_fbosViewEnabled{ true };
+		bool m_obbDrawEnabled{ false };
 		bool applyRequested{ false };
 		bool revertRequested{ false };
 
@@ -65,5 +67,8 @@ namespace nimo
 
 		bool renderShaderEditPanel(std::string& label, std::string* code, float& scrollY, float width, float height);
 		std::string labelPrefix(const char* const label);
+		//nimo::SceneRenderer::AABB getAABB(std::shared_ptr<Mesh>& mesh, TransformComponent& transform, glm::mat4& modelMatrix);
+		void renderOOB(const std::shared_ptr<OOB>& aabb);
+		void renderFrustum(const std::shared_ptr<Frustum>& frustum);
 	};
 }

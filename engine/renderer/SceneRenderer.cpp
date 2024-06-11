@@ -107,7 +107,8 @@ nimo::SceneRenderer::SceneRenderer(bool enableDebug) :
     directionalLightBufferDetails.width = 4096;
     directionalLightBufferDetails.height = 4096;
     directionalLightBufferDetails.clearColorOnBind = true;
-    directionalLightBufferDetails.colorAttachments.push_back({ GL_RGB16F, GL_RGB, GL_FLOAT });
+    directionalLightBufferDetails.clearDepthOnBind = true;
+    //directionalLightBufferDetails.colorAttachments.push_back({ GL_RGB16F, GL_RGB, GL_FLOAT });
     m_directionalLightDepthBuffer = std::make_shared<FrameBuffer>(directionalLightBufferDetails);
     // GBuffer
     initFBOs(enabledFSR2);
@@ -170,6 +171,7 @@ nimo::SceneRenderer::SceneRenderer(bool enableDebug) :
     m_shaderText = AssetManager::Get<Shader>("Shaders/text.nshader");
 
     m_shaderDepth = nimo::AssetManager::Get<Shader>("Shaders/depth.nshader");
+    m_shaderUnlitColor = nimo::AssetManager::Get<Shader>("Shaders/unlit_color.nshader");
 
     //White texture in memory
     unsigned int whitePixel = 0xFFFFFFFF;
@@ -271,7 +273,7 @@ void nimo::SceneRenderer::update(float deltaTime)
         renderPass.second->update(deltaTime);
 }
 
-void nimo::SceneRenderer::Render(std::shared_ptr<FrameBuffer> target, const CameraComponent& cameraSettings, const TransformComponent& cameraTransform, float deltaTime)
+void nimo::SceneRenderer::Render(std::shared_ptr<FrameBuffer> target, CameraComponent& cameraSettings, const TransformComponent& cameraTransform, float deltaTime)
 {
     m_mustRender = true;
     // If FPS is limited for the current project
@@ -314,39 +316,58 @@ void nimo::SceneRenderer::updateFromChangedVariables()
         m_mustReconfigurePipeline = true;
 }
 
-nimo::SceneRenderer::Frustum nimo::SceneRenderer::getFrustumFromCamera(const nimo::TransformComponent& transform, float fov, float width, float height, float nearDist, float farDist)
+std::shared_ptr<nimo::Frustum> nimo::SceneRenderer::getFrustumFromCamera(const nimo::TransformComponent& camTransform, float fov, float width, float height, float nearDist, float farDist)
 {
-    Frustum     frustum;
+    std::shared_ptr < nimo::Frustum> frustum = std::make_shared<nimo::Frustum>();
 
     float aspect = width / height;
-    glm::vec3 front = transform.GetFront();
-    glm::vec3 up = transform.GetUp();
-    glm::vec3 right = transform.GetRight();
+    glm::vec3 front = camTransform.GetFront();
+    glm::vec3 up = camTransform.GetUp();
+    glm::vec3 right = camTransform.GetRight();
 
-    const float halfVSide = farDist * tanf(fov * .5f);
-    const float halfHSide = halfVSide * aspect;
-    const glm::vec3 frontMultFar = farDist * front;
+    ///*glm::vec3*/ right = glm::normalize(glm::cross(front, glm::vec3(0.0f, 1.0f, 0.0f)));
+    ///*glm::vec3*/ up = glm::normalize(glm::cross(right, front));
 
-    frustum.nearFace = { transform.Translation + nearDist * front, front };
-    frustum.farFace = { transform.Translation + frontMultFar, -front };
+    // Expand the FOV of the frustum culling to avoid premature culling that removes meshes while still visible on the screen
+    float halfVSide = farDist * tanf(fov*1.15f * .5f);
+    float halfHSide = halfVSide * aspect;
+    glm::vec3 frontMultFar = farDist * front;
 
-    frustum.leftFace = { transform.Translation,
+    frustum->nearFace = { camTransform.Translation + nearDist * front, front };
+    frustum->farFace = { camTransform.Translation + frontMultFar, -front };
+
+    frustum->leftFace = { camTransform.Translation,
                             glm::cross(frontMultFar - right * halfHSide, up) };
-    frustum.rightFace = { transform.Translation,
+    frustum->rightFace = { camTransform.Translation,
                             glm::cross(up,frontMultFar + right * halfHSide) };
-    frustum.bottomFace = { transform.Translation,
+    frustum->bottomFace = { camTransform.Translation,
                             glm::cross(right, frontMultFar - up * halfVSide) };
-    frustum.topFace = { transform.Translation,
+    frustum->topFace = { camTransform.Translation,
                             glm::cross(frontMultFar + up * halfVSide, right) };
-
-    //frustum.rightFace = { transform.Translation,
+    
+    //frustum->rightFace = { camTransform.Translation,
     //                        glm::cross(frontMultFar - right * halfHSide, up) };
-    //frustum.leftFace = { transform.Translation,
+    //frustum->leftFace = { camTransform.Translation,
     //                        glm::cross(up,frontMultFar + right * halfHSide) };
-    //frustum.topFace = { transform.Translation,
+    //frustum->topFace = { camTransform.Translation,
     //                        glm::cross(right, frontMultFar - up * halfVSide) };
-    //frustum.bottomFace = { transform.Translation,
+    //frustum->bottomFace = { camTransform.Translation,
     //                        glm::cross(frontMultFar + up * halfVSide, right) };
+
+    float narrowFactor = 0.50f;
+    halfHSide *= narrowFactor;
+    halfVSide *= narrowFactor;
+    frontMultFar *= narrowFactor;
+
+    // Generate vertices with a slightly narrowed frustum to be drawn. Follow same order as enum Frustum::FrustumVertice
+    frustum->visibleVertices.push_back(camTransform.Translation + (frontMultFar - right * halfHSide - up * halfVSide));
+    frustum->visibleVertices.push_back(camTransform.Translation + (frontMultFar - right * halfHSide + up * halfVSide));
+    frustum->visibleVertices.push_back(camTransform.Translation + (frontMultFar + right * halfHSide + up * halfVSide));
+    frustum->visibleVertices.push_back(camTransform.Translation + (frontMultFar + right * halfHSide - up * halfVSide));
+    frustum->visibleVertices.push_back(camTransform.Translation + (nearDist * front - right * halfHSide - up * halfVSide));
+    frustum->visibleVertices.push_back(camTransform.Translation + (nearDist * front - right * halfHSide + up * halfVSide));
+    frustum->visibleVertices.push_back(camTransform.Translation + (nearDist * front + right * halfHSide + up * halfVSide));
+    frustum->visibleVertices.push_back(camTransform.Translation + (nearDist * front + right * halfHSide - up * halfVSide));
 
     return frustum;
 }
@@ -417,13 +438,13 @@ void nimo::SceneRenderer::initFBOs(bool fsrActive)
 }
 
 
-void nimo::SceneRenderer::updateFrustumCulling(const nimo::TransformComponent& camTransform, const CameraComponent& camera, float viewportWidth, float viewportHeight)
+void nimo::SceneRenderer::updateFrustumCulling(const nimo::TransformComponent& camTransform, CameraComponent& camera, float viewportWidth, float viewportHeight)
 {
     // Frustum Culling
     unsigned int entitiesDrawn = 0;
     if (enabledFrustumCulling)
     {
-        auto frustum = getFrustumFromCamera(camTransform, glm::radians(camera.FOV), viewportWidth, viewportHeight, camera.ClippingPlanes.Near, camera.ClippingPlanes.Far);
+        camera.frustum = getFrustumFromCamera(camTransform, glm::radians(camera.FOV), viewportWidth, viewportHeight, camera.ClippingPlanes.Near, camera.ClippingPlanes.Far);
 
         m_scene->entitiesRegistry().view<ActiveComponent, IDComponent, MeshComponent, TransformComponent>().each(
             [&](ActiveComponent& active, IDComponent& id, MeshComponent& m, TransformComponent& t)
@@ -433,11 +454,10 @@ void nimo::SceneRenderer::updateFrustumCulling(const nimo::TransformComponent& c
             if (!m.source) return;
             if (enabledFrustumCulling)
             {
-                SceneRenderer::AABB aabb(t.Translation, t.Scale.x, t.Scale.y, t.Scale.z);
-                m.inFrustum = aabb.isOnFrustum(frustum, t.Translation);
+                auto oob = m.source->getOOB();
+                //SceneRenderer::AABB aabb(t.Translation, t.Scale.x, t.Scale.y, t.Scale.z);
+                m.inFrustum = oob->isOnFrustum(camera.frustum, t.Translation);
             }
-            else
-                m.inFrustum = true;
 
             entitiesDrawn++;
         });
@@ -445,47 +465,50 @@ void nimo::SceneRenderer::updateFrustumCulling(const nimo::TransformComponent& c
 }
 
 
-bool nimo::SceneRenderer::AABB::isOnFrustum(const Frustum& camFrustum, const TransformComponent& modelTransform) const
-{
-    auto modelMatrix = modelTransform.GetTransform();
-
-    //Get global scale thanks to our transform
-    const glm::vec3 globalCenter{ modelMatrix * glm::vec4(center, 1.f) };
-
-    // Scaled orientation
-    const glm::vec3 right = modelTransform.GetRight() * extents.x;
-    const glm::vec3 up = modelTransform.GetUp() * extents.y;
-    const glm::vec3 forward = modelTransform.GetFront() * extents.z;
-
-    const float newIi = std::abs(glm::dot(glm::vec3{ 1.f, 0.f, 0.f }, right)) +
-        std::abs(glm::dot(glm::vec3{ 1.f, 0.f, 0.f }, up)) +
-        std::abs(glm::dot(glm::vec3{ 1.f, 0.f, 0.f }, forward));
-
-    const float newIj = std::abs(glm::dot(glm::vec3{ 0.f, 1.f, 0.f }, right)) +
-        std::abs(glm::dot(glm::vec3{ 0.f, 1.f, 0.f }, up)) +
-        std::abs(glm::dot(glm::vec3{ 0.f, 1.f, 0.f }, forward));
-
-    const float newIk = std::abs(glm::dot(glm::vec3{ 0.f, 0.f, 1.f }, right)) +
-        std::abs(glm::dot(glm::vec3{ 0.f, 0.f, 1.f }, up)) +
-        std::abs(glm::dot(glm::vec3{ 0.f, 0.f, 1.f }, forward));
-
-    //We not need to divise scale because it's based on the half extention of the AABB
-    const AABB globalAABB(globalCenter, newIi, newIj, newIk);
-
-    return (globalAABB.isOnOrForwardPlane(camFrustum.leftFace) &&
-        globalAABB.isOnOrForwardPlane(camFrustum.rightFace) &&
-        globalAABB.isOnOrForwardPlane(camFrustum.topFace) &&
-        globalAABB.isOnOrForwardPlane(camFrustum.bottomFace) &&
-        globalAABB.isOnOrForwardPlane(camFrustum.nearFace) &&
-        globalAABB.isOnOrForwardPlane(camFrustum.farFace));
-}
-
-
-bool nimo::SceneRenderer::AABB::isOnOrForwardPlane(const Plane& plane) const
-{
-    // Compute the projection interval radius of b onto L(t) = b.c + t * p.n
-    const float r = extents.x * std::abs(plane.normal.x) +
-        extents.y * std::abs(plane.normal.y) + extents.z * std::abs(plane.normal.z);
-
-    return -r <= plane.getSignedDistanceToPlane(center);
-}
+//bool nimo::SceneRenderer::AABB::isOnFrustum(const Frustum& camFrustum, const TransformComponent& modelTransform) const
+//{
+//    auto modelMatrix = modelTransform.GetTransform();
+//
+//    //Get global scale thanks to our transform
+//    const glm::vec3 globalCenter{ modelMatrix * glm::vec4(center, 1.f) };
+//
+//    // Scaled orientation
+//    glm::vec3 right = modelTransform.GetRight() * extents.x;
+//    glm::vec3 up = modelTransform.GetUp() * extents.y;
+//    glm::vec3 forward = modelTransform.GetFront() * extents.z;
+//
+//    /*glm::vec3*/ right = glm::normalize(glm::cross(forward, glm::vec3(0.0f, 1.0f, 0.0f)));
+//    /*glm::vec3*/ up = glm::normalize(glm::cross(right, forward));
+//
+//    const float newIi = std::abs(glm::dot(glm::vec3{ 1.f, 0.f, 0.f }, right)) +
+//        std::abs(glm::dot(glm::vec3{ 1.f, 0.f, 0.f }, up)) +
+//        std::abs(glm::dot(glm::vec3{ 1.f, 0.f, 0.f }, forward));
+//
+//    const float newIj = std::abs(glm::dot(glm::vec3{ 0.f, 1.f, 0.f }, right)) +
+//        std::abs(glm::dot(glm::vec3{ 0.f, 1.f, 0.f }, up)) +
+//        std::abs(glm::dot(glm::vec3{ 0.f, 1.f, 0.f }, forward));
+//
+//    const float newIk = std::abs(glm::dot(glm::vec3{ 0.f, 0.f, 1.f }, right)) +
+//        std::abs(glm::dot(glm::vec3{ 0.f, 0.f, 1.f }, up)) +
+//        std::abs(glm::dot(glm::vec3{ 0.f, 0.f, 1.f }, forward));
+//
+//    //We not need to divise scale because it's based on the half extention of the AABB
+//    const AABB globalAABB(globalCenter, newIi, newIj, newIk);
+//
+//    return (globalAABB.isOnOrForwardPlane(camFrustum.leftFace) &&
+//        globalAABB.isOnOrForwardPlane(camFrustum.rightFace) &&
+//        globalAABB.isOnOrForwardPlane(camFrustum.topFace) &&
+//        globalAABB.isOnOrForwardPlane(camFrustum.bottomFace) &&
+//        globalAABB.isOnOrForwardPlane(camFrustum.nearFace) &&
+//        globalAABB.isOnOrForwardPlane(camFrustum.farFace));
+//}
+//
+//
+//bool nimo::SceneRenderer::AABB::isOnOrForwardPlane(const Plane& plane) const
+//{
+//    // Compute the projection interval radius of b onto L(t) = b.c + t * p.n
+//    const float r = extents.x * std::abs(plane.normal.x) +
+//        extents.y * std::abs(plane.normal.y) + extents.z * std::abs(plane.normal.z);
+//
+//    return -r <= plane.getSignedDistanceToPlane(center);
+//}

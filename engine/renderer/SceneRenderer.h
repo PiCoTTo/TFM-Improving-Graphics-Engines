@@ -58,49 +58,13 @@ namespace nimo
             }
         };
 
-        struct Frustum
-        {
-            Plane topFace;
-            Plane bottomFace;
-            Plane rightFace;
-            Plane leftFace;
-
-            Plane farFace;
-            Plane nearFace;
-        };
-
-        struct BoundingVolume
-        {
-            virtual bool isOnFrustum(const Frustum& camFrustum,
-                const nimo::TransformComponent& modelTransform) const = 0;
-        };
-
-        struct AABB : public BoundingVolume
-        {
-            glm::vec3 center{ 0.f, 0.f, 0.f };
-            glm::vec3 extents{ 0.f, 0.f, 0.f };
-
-            AABB(const glm::vec3& min, const glm::vec3& max)
-                : BoundingVolume{},
-                center{ (max + min) * 0.5f },
-                extents{ max.x - center.x, max.y - center.y, max.z - center.z }
-            {}
-
-            AABB(const glm::vec3& inCenter, float iI, float iJ, float iK)
-                : BoundingVolume{}, center{ inCenter }, extents{ iI, iJ, iK }
-            {}
-
-            bool isOnFrustum(const Frustum& camFrustum, const TransformComponent& modelTransform) const;
-            bool isOnOrForwardPlane(const Plane& plane) const;
-        };
-
         SceneRenderer(bool enableDebug = false);
         ~SceneRenderer();
 
         bool limitFPS{ true };
         bool m_useDeferredShading{ true };
         bool enabledFrustumCulling{ false };
-        bool enabledFSR2{ true };
+        bool enabledFSR2{ false };
         bool m_enabledDebug{ false };
 
         inline float currentFrameTime() const
@@ -124,11 +88,11 @@ namespace nimo
 
         void update(float deltaTime = 0);
 
-        void Render(std::shared_ptr<FrameBuffer> target = {}, const CameraComponent& cameraSettings = {}, const TransformComponent& cameraTransform = {}, float deltaTime = 0);
+        void Render(std::shared_ptr<FrameBuffer> target, CameraComponent& cameraSettings, const TransformComponent& cameraTransform = {}, float deltaTime = 0);
 
         void updateFromChangedVariables();
 
-        void updateFrustumCulling(const nimo::TransformComponent& camTransform, const CameraComponent& camera, float viewportWidth, float viewportHeight);
+        void updateFrustumCulling(const nimo::TransformComponent& camTransform, CameraComponent& camera, float viewportWidth, float viewportHeight);
 
     public:
         Timer m_frameTimer;
@@ -167,6 +131,7 @@ namespace nimo
         std::shared_ptr<Shader> m_shader2d;
         std::shared_ptr<Shader> m_shaderText;
         std::shared_ptr<Shader> m_shaderDepth;
+        std::shared_ptr<Shader> m_shaderUnlitColor;
         std::shared_ptr<Texture> m_white;
         std::shared_ptr<Texture> m_black;
         VertexArray* m_vaoText = nullptr;
@@ -201,7 +166,7 @@ namespace nimo
         bool m_mustReconfigurePipeline{ false };
         bool m_currentlyUsingFSR2{ false };
 
-        Frustum getFrustumFromCamera(const nimo::TransformComponent& transform, float fov, float width, float height, float nearDist, float farDist);
+        std::shared_ptr<nimo::Frustum> getFrustumFromCamera(const nimo::TransformComponent& transform, float fov, float width, float height, float nearDist, float farDist);
         void initFSR2();
         void initFBOs(bool fsrActive = false);
     };

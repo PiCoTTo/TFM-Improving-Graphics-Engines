@@ -52,45 +52,15 @@ struct TransformComponent
     TransformComponent(const glm::vec3& translation)
         : Translation(translation) {}
 
-    glm::mat4 GetTransform() const
-    {
-        return glm::translate(glm::mat4(1.0f), Translation)
-            * glm::toMat4(glm::quat(glm::radians(Rotation)))
-            * glm::scale(glm::mat4(1.0f), Scale);
-    }
-    glm::mat4 GetView() const
-    {
-        auto orientation = 
-            glm::angleAxis(glm::radians(Rotation.x), glm::vec3(1, 0, 0)) *
-            glm::angleAxis(glm::radians(Rotation.y), glm::vec3(0, 1, 0)) *
-            glm::angleAxis(glm::radians(Rotation.z), glm::vec3(0, 0, 1));
-        auto pUpVector = defaultUpVector() * orientation;
-        auto pLookAt = Translation + (defaultForwardVector() * orientation);
-        auto pView = glm::lookAt(Translation, pLookAt, pUpVector);
-        return pView;
-        // glm::vec3 dir;
-        // dir.x = glm::cos(glm::radians(Rotation.x)) * glm::cos(glm::radians(Rotation.y + 90.0f));
-        // dir.y = glm::sin(glm::radians(Rotation.x));
-        // dir.z = glm::cos(glm::radians(Rotation.x)) * glm::sin(glm::radians(Rotation.y + 90.0f));
-        // dir = glm::normalize(dir);
-        // glm::quatLookAtLH()
-        // return glm::lookAt(Translation, Translation + dir, glm::vec3(0.0f, 1.0f, 0.0f));
-        // glm::rotate(glm::vec3(0.0f, 1.0f, 0.0f), glm::radians(Rotation.z), glm::vec3(0.0f, 0.0f, -1.0f))
-        return glm::toMat4(glm::conjugate(glm::quat(glm::radians(Rotation)))) 
-                * glm::translate(glm::mat4(1.0f), {Translation.x, Translation.y, -Translation.z});
-    }
-    glm::vec3 GetFront() const 
-    {
-        return -normalize(glm::vec3(glm::inverse(GetTransform())[2]));
-    }
-    glm::vec3 GetUp() const 
-    {
-        return normalize(glm::vec3(glm::inverse(GetTransform())[1]));
-    }
-    glm::vec3 GetRight() const 
-    {
-        return normalize(glm::vec3(glm::inverse(GetTransform())[0]));
-    }
+    glm::mat4 GetTransform() const;
+
+    glm::mat4 GetView() const;
+
+    glm::vec3 GetFront() const;
+
+    glm::vec3 GetUp() const;
+
+    glm::vec3 GetRight() const;
 };
 
 struct CameraComponent{
@@ -103,6 +73,7 @@ struct CameraComponent{
         float Near{0.1f};
         float Far{100.0f};
     }ClippingPlanes;
+    std::shared_ptr<Frustum> frustum;
 };
 
 struct PointLightComponent{
@@ -123,6 +94,7 @@ struct MeshComponent{
     std::shared_ptr<Mesh> source;
     unsigned int submeshIndex = 0;
     bool inFrustum = 1;
+    glm::vec3 center;
 };
 
 struct MeshRendererComponent{
