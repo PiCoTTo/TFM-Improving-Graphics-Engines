@@ -10,6 +10,70 @@
 #include "events/KeyEvents.h"
 #include "events/MouseEvents.h"
 
+#include <iostream>
+#include <sstream>
+
+
+void GLAPIENTRY OpenglErrorCallback(GLenum source,
+    GLenum type,
+    GLuint id,
+    GLenum severity,
+    [[maybe_unused]] GLsizei length,
+    const GLchar* message,
+    [[maybe_unused]] const void* userParam)
+{
+    // Ignore certain verbose info messages (particularly ones on Nvidia).
+    if (id == 131169 ||
+        id == 131185 || // NV: Buffer will use video memory
+        id == 131218 ||
+        id == 131204 || // Texture cannot be used for texture mapping
+        id == 131222 ||
+        id == 131154 || // NV: pixel transfer is synchronized with 3D rendering
+        id == 0         // gl{Push, Pop}DebugGroup
+        )
+        return;
+
+    std::stringstream errStream;
+    errStream << "OpenGL Debug message (" << id << "): " << message << '\n';
+
+    switch (source)
+    {
+    case GL_DEBUG_SOURCE_API: errStream << "Source: API"; break;
+    case GL_DEBUG_SOURCE_WINDOW_SYSTEM: errStream << "Source: Window Manager"; break;
+    case GL_DEBUG_SOURCE_SHADER_COMPILER: errStream << "Source: Shader Compiler"; break;
+    case GL_DEBUG_SOURCE_THIRD_PARTY: errStream << "Source: Third Party"; break;
+    case GL_DEBUG_SOURCE_APPLICATION: errStream << "Source: Application"; break;
+    case GL_DEBUG_SOURCE_OTHER: errStream << "Source: Other"; break;
+    }
+
+    errStream << '\n';
+
+    switch (type)
+    {
+    case GL_DEBUG_TYPE_ERROR: errStream << "Type: Error"; break;
+    case GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR: errStream << "Type: Deprecated Behaviour"; break;
+    case GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR: errStream << "Type: Undefined Behaviour"; break;
+    case GL_DEBUG_TYPE_PORTABILITY: errStream << "Type: Portability"; break;
+    case GL_DEBUG_TYPE_PERFORMANCE: errStream << "Type: Performance"; break;
+    case GL_DEBUG_TYPE_MARKER: errStream << "Type: Marker"; break;
+    case GL_DEBUG_TYPE_PUSH_GROUP: errStream << "Type: Push Group"; break;
+    case GL_DEBUG_TYPE_POP_GROUP: errStream << "Type: Pop Group"; break;
+    case GL_DEBUG_TYPE_OTHER: errStream << "Type: Other"; break;
+    }
+
+    errStream << '\n';
+
+    switch (severity)
+    {
+    case GL_DEBUG_SEVERITY_HIGH: errStream << "Severity: high"; break;
+    case GL_DEBUG_SEVERITY_MEDIUM: errStream << "Severity: medium"; break;
+    case GL_DEBUG_SEVERITY_LOW: errStream << "Severity: low"; break;
+    case GL_DEBUG_SEVERITY_NOTIFICATION: errStream << "Severity: notification"; break;
+    }
+
+    std::cout << errStream.str() << '\n';
+}
+
 struct nimo::Window::impl{
     WindowDescription description;
     GLFWwindow* handle;
@@ -151,6 +215,12 @@ nimo::Window::Window(const WindowDescription& description)
     //     glfwSetWindowIcon(m_Window, 1, &icon);
     //     stbi_image_free(icon.pixels);
     // }
+
+  // Set up the GL debug message callback.
+    glEnable(GL_DEBUG_OUTPUT);
+    glDebugMessageCallback(OpenglErrorCallback, nullptr);
+    glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
+    glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, nullptr, GL_TRUE);
 
     // Setup Dear ImGui context
     IMGUI_CHECKVERSION();
