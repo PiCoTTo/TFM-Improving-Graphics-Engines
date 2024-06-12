@@ -14,7 +14,8 @@ void SceneViewPanel::OnRender(float deltaTime)
         for (auto scene : nimo::AssetManager::GetAllLoaded<nimo::Scene>())
         {
             m_editor->m_sceneViewRenderer->SetScene(scene);
-            m_editor->m_sceneViewRenderer->Render(fb, {}, t, deltaTime);
+            nimo::CameraComponent cameraSettings;
+            m_editor->m_sceneViewRenderer->Render(fb, cameraSettings, t, deltaTime);
         }
         nimo::Renderer::EndFrame();
     }

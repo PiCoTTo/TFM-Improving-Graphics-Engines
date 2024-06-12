@@ -78,14 +78,14 @@ namespace nimo{
             const nimo::TransformComponent& modelTransform) const = 0;
     };
 
-    struct OOB : public BoundingVolume
+    struct OBB : public BoundingVolume
     {
         glm::vec3 center{ 0.f, 0.f, 0.f };
         glm::vec3 extents{ 0.f, 0.f, 0.f };
 
-        OOB(const glm::vec3& min, const glm::vec3& max);
+        OBB(const glm::vec3& min, const glm::vec3& max);
 
-        OOB(const glm::vec3& inCenter, float iI, float iJ, float iK);
+        OBB(const glm::vec3& inCenter, float iI, float iJ, float iK);
 
         bool isOnFrustum(const std::shared_ptr<Frustum>& camFrustum, const TransformComponent& modelTransform) const override;
         bool isOnOrForwardPlane(const glm::mat4& modelMatrix, const Plane& plane) const;
@@ -117,10 +117,10 @@ namespace nimo{
         std::shared_ptr<Submesh> GetSubmesh(unsigned int id);
         const std::vector<std::shared_ptr<Submesh>>& GetSubmeshes(){ return m_submeshes;}
         glm::vec3 getCenter();
-        std::shared_ptr<OOB>& getOOB();
+        std::shared_ptr<OBB>& getOOB();
     private:
         std::vector<std::shared_ptr<Submesh>> m_submeshes;
-        std::shared_ptr<OOB> m_oob;
+        std::shared_ptr<OBB> m_oob;
 
         AABB m_aabb;
         glm::vec3 m_center;

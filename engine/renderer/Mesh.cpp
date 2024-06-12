@@ -112,7 +112,7 @@ nimo::Mesh::Mesh(const std::string& file, bool mergeMeshesByMaterial)
             }
             submesh->Submit();
             m_submeshes.push_back(submesh);
-            m_oob = std::make_shared<OOB>(min, max);
+            m_oob = std::make_shared<OBB>(min, max);
             m_center = (max - min) * 0.5f;
         }
         // std::cout << "\t NumTextures: " << scene->mNumTextures << std::endl;
@@ -173,7 +173,7 @@ glm::vec3 nimo::Mesh::getCenter()
     return m_center;
 }
 
-std::shared_ptr<nimo::OOB>& nimo::Mesh::getOOB()
+std::shared_ptr<nimo::OBB>& nimo::Mesh::getOOB()
 {
     return m_oob;
 }
@@ -210,7 +210,7 @@ void nimo::Submesh::Submit()
     m_vbo->ApplyLayout();
 }
 
-nimo::OOB::OOB(const glm::vec3& min, const glm::vec3& max)
+nimo::OBB::OBB(const glm::vec3& min, const glm::vec3& max)
     : BoundingVolume{},
     center{ (max + min) * 0.5f },
     extents{ max.x - center.x, max.y - center.y, max.z - center.z }
@@ -218,13 +218,13 @@ nimo::OOB::OOB(const glm::vec3& min, const glm::vec3& max)
     initVertices(min, max);
 }
 
-nimo::OOB::OOB(const glm::vec3& inCenter, float iI, float iJ, float iK)
+nimo::OBB::OBB(const glm::vec3& inCenter, float iI, float iJ, float iK)
     : BoundingVolume{}, center{ inCenter }, extents{ iI, iJ, iK }
 {
     initVertices(center - extents, center + extents);
 }
 
-bool nimo::OOB::isOnFrustum(const std::shared_ptr<nimo::Frustum>& camFrustum, const TransformComponent& modelTransform) const
+bool nimo::OBB::isOnFrustum(const std::shared_ptr<nimo::Frustum>& camFrustum, const TransformComponent& modelTransform) const
 {
     auto modelMatrix = modelTransform.GetTransform();
 
@@ -259,7 +259,7 @@ bool nimo::OOB::isOnFrustum(const std::shared_ptr<nimo::Frustum>& camFrustum, co
     //    std::abs(glm::dot(glm::vec3{ 0.f, 0.f, 1.f }, forward));
 
     ////We not need to divise scale because it's based on the half extention of the AABB
-    //const nimo::Mesh::OOB globalOOB(globalCenter, newIi, newIj, newIk);
+    //const nimo::Mesh::OBB globalOOB(globalCenter, newIi, newIj, newIk);
 
     //return (globalOOB.isOnOrForwardPlane(camFrustum.leftFace) &&
     //        globalOOB.isOnOrForwardPlane(camFrustum.rightFace) &&
@@ -269,7 +269,7 @@ bool nimo::OOB::isOnFrustum(const std::shared_ptr<nimo::Frustum>& camFrustum, co
     //        globalOOB.isOnOrForwardPlane(camFrustum.farFace));
 }
 
-bool nimo::OOB::isOnOrForwardPlane(const glm::mat4& modelMatrix, const Plane& plane) const
+bool nimo::OBB::isOnOrForwardPlane(const glm::mat4& modelMatrix, const Plane& plane) const
 {
     int inside = 0;
     for (const auto& vertex : vertices)
@@ -286,7 +286,7 @@ bool nimo::OOB::isOnOrForwardPlane(const glm::mat4& modelMatrix, const Plane& pl
     //return -r <= plane.getSignedDistanceToPlane(center);
 }
 
-void nimo::OOB::initVertices(const glm::vec3& min, const glm::vec3& max)
+void nimo::OBB::initVertices(const glm::vec3& min, const glm::vec3& max)
 {
     vertices.push_back(max);
     vertices.push_back({ max.x - extents.x * 2, max.y, max.z });

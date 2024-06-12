@@ -22,6 +22,8 @@ namespace nimo
 		std::shared_ptr<Shader> m_shader;
 		std::string vertexSourceBak;
 		std::string fragmentSourceBak;
+		std::string vertexLastApplied;
+		std::string fragmentLastApplied;
 		float vertexScrollY{ 0 };
 		float fragmentScrollY{ 0 };
 	};
@@ -36,13 +38,13 @@ namespace nimo
 		void render(std::shared_ptr<FrameBuffer> target, CameraComponent& cameraSettings, const TransformComponent& cameraTransform, float deltaTime) override;
 
 	private:
-		bool m_statsViewEnabled{ true };
-		bool m_exportedVariablesViewEnabled{ true };
-		bool m_shadersEditorViewEnabled{ false };
-		bool m_fbosViewEnabled{ true };
-		bool m_obbDrawEnabled{ false };
-		bool applyRequested{ false };
-		bool revertRequested{ false };
+		bool m_statsViewEnabled				{ true };
+		bool m_exportedVariablesViewEnabled	{ true };
+		bool m_shadersEditorViewEnabled		{ false };
+		bool m_fbosViewEnabled				{ true };
+		bool m_obbDrawEnabled				{ false };
+		bool applyRequested					{ false };
+		bool revertRequested				{ false };
 
 		nimo::RendererStats m_displayedStats;
 		nimo::RendererStats m_emptyDisplayedStats;
@@ -65,10 +67,14 @@ namespace nimo
 		static const ImGuiSelectableFlags SELECTABLE_BASE_FLAGS;
 		static const ImGuiTabBarFlags TAB_BAR_BASE_FLAGS;
 
+		void renderExportedVariablesView(CameraComponent& cameraSettings, const TransformComponent& cameraTransform);
+		void renderShaderEditView();
 		bool renderShaderEditPanel(std::string& label, std::string* code, float& scrollY, float width, float height);
+		void renderFbosView();
+
 		std::string labelPrefix(const char* const label);
 		//nimo::SceneRenderer::AABB getAABB(std::shared_ptr<Mesh>& mesh, TransformComponent& transform, glm::mat4& modelMatrix);
-		void renderOOB(const std::shared_ptr<OOB>& aabb);
+		void renderOBB(const std::shared_ptr<OBB>& aabb);
 		void renderFrustum(const std::shared_ptr<Frustum>& frustum);
 	};
 }

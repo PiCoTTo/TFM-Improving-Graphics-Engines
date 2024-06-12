@@ -97,6 +97,7 @@ namespace nimo
 
         m_currentTime += deltaTime;
         m_timeDebugRefresh += deltaTime;
+        // Introduces a configurable sampling period both for data recording and for the user to clearly read values
         if (m_timeDebugRefresh > 1.f / m_refreshRate)
         {
             //m_displayedStats.frameTime = m_gameViewPanel->getFrameTime();
@@ -107,11 +108,11 @@ namespace nimo
                 m_displayedStats.maximumFrameTime = std::max(m_displayedStats.maximumFrameTime, m_displayedStats.frameTime);
                 m_displayedStats.minimumFrameTime = std::min(m_displayedStats.minimumFrameTime, m_displayedStats.frameTime);
             }
-            m_displayedStats.renderFrameTime = m_renderer->m_renderFrameTimer.ElapsedMillis();
-            m_displayedStats.geometryFrameTime = m_renderer->m_geometryFrameTimer.ElapsedMillis();
-            m_displayedStats.lightingFrameTime = m_renderer->m_lightingFrameTimer.ElapsedMillis();
-            m_displayedStats.bloomFrameTime = m_renderer->m_bloomFrameTimer.ElapsedMillis();
-            m_displayedStats.geometry2DFrameTime = m_renderer->m_geometry2DFrameTimer.ElapsedMillis();
+            m_displayedStats.renderFrameTime        = m_renderer->m_renderFrameTimer.ElapsedMillis();
+            m_displayedStats.geometryFrameTime      = m_renderer->m_geometryFrameTimer.ElapsedMillis();
+            m_displayedStats.lightingFrameTime      = m_renderer->m_lightingFrameTimer.ElapsedMillis();
+            m_displayedStats.bloomFrameTime         = m_renderer->m_bloomFrameTimer.ElapsedMillis();
+            m_displayedStats.geometry2DFrameTime    = m_renderer->m_geometry2DFrameTimer.ElapsedMillis();
 
             // Record the metrics
             m_samples.push_back({
@@ -239,7 +240,7 @@ namespace nimo
                 m_renderer->m_shaderUnlitColor->Set("transform", m_renderer->m_scene->GetWorldSpaceTransformMatrix(m_renderer->m_scene->GetEntity(id.Id)));
 
                 auto oob = m.source->getOOB();
-                renderOOB(oob);
+                renderOBB(oob);
 
                 entitiesDrawn++;
             });
@@ -252,9 +253,6 @@ namespace nimo
                 //    renderFrustum(cam.frustum);
             }
         }
-
-        // Stats GUI
-        //if (!m_statsViewEnabled) return;
 
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
@@ -304,47 +302,64 @@ namespace nimo
 
         if (m_exportedVariablesViewEnabled)
         {
-            ImGui::SetNextWindowSize(ImVec2(400, 300), ImGuiCond_FirstUseEver);
+            renderExportedVariablesView(cameraSettings, cameraTransform);
+        }
 
-            ImGui::Begin("Variables", &m_exportedVariablesViewEnabled, ImGuiWindowFlags_NoCollapse);
+        if (m_shadersEditorViewEnabled)
+        {
+            renderShaderEditView();
+        }
 
-            ImGui::Button("\tRestore\t");
+        if (m_fbosViewEnabled)
+        {
+            renderFbosView();
+        }
 
-            auto cameraParam = static_cast<glm::vec3*>(&cameraTransform.GetFront());
-            ImGui::DragFloat3("Camera Forward", &cameraParam->x, 0.05f);
-            if (m_renderer->enabledFrustumCulling)
+        ImGui::Render();
+
+        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+    }
+
+
+    void DebugPass::renderExportedVariablesView(CameraComponent& cameraSettings, const TransformComponent& cameraTransform)
+    {
+        ImGui::SetNextWindowSize(ImVec2(400, 300), ImGuiCond_FirstUseEver);
+
+        ImGui::Begin("Variables", &m_exportedVariablesViewEnabled, ImGuiWindowFlags_NoCollapse);
+
+        ImGui::Button("\tRestore\t");
+
+        auto cameraParam = static_cast<glm::vec3*>(&cameraTransform.GetFront());
+        ImGui::DragFloat3("Camera Forward", &cameraParam->x, 0.05f);
+        if (m_renderer->enabledFrustumCulling)
+        {
+            glm::vec3 frustumParam(cameraSettings.frustum->visibleVertices[static_cast<int>(Frustum::FrustumVertice::FarBottomLeft)]);
+            ImGui::DragFloat3("Frustum Min (far bottom left)", &frustumParam.x, 0.05f);
+            frustumParam = cameraSettings.frustum->visibleVertices[static_cast<int>(Frustum::FrustumVertice::NearTopRight)];
+            ImGui::DragFloat3("Frustum Max (near top right)", &frustumParam.x, 0.05f);
+        }
+
+        bool anythingChanged{ false };
+        for (const auto& exportedVariablePair : ExportedVariablesManager::instance()->variables())
+        {
+            auto exportedVariable = exportedVariablePair.second;
+            if (exportedVariable->m_type == std::type_index(typeid(bool)))
             {
-                glm::vec3 frustumParam(cameraSettings.frustum->visibleVertices[static_cast<int>(Frustum::FrustumVertice::FarBottomLeft)]);
-                ImGui::DragFloat3("Frustum Min (far bottom left)", &frustumParam.x, 0.05f);
-                frustumParam = cameraSettings.frustum->visibleVertices[static_cast<int>(Frustum::FrustumVertice::NearTopRight)];
-                ImGui::DragFloat3("Frustum Max (near top right)", &frustumParam.x, 0.05f);
+                anythingChanged |= ImGui::Checkbox(exportedVariable->m_name.c_str(), static_cast<bool*>(exportedVariable->m_value));
             }
 
-            bool anythingChanged{ false };
-            for (const auto& exportedVariablePair : ExportedVariablesManager::instance()->variables())
+            if (exportedVariable->m_type == std::type_index(typeid(unsigned int)))
             {
-                auto exportedVariable = exportedVariablePair.second;
-                if (exportedVariable->m_type == std::type_index(typeid(bool)))
-                {
-                    anythingChanged |= ImGui::Checkbox(exportedVariable->m_name.c_str(), static_cast<bool*>(exportedVariable->m_value));
-                }
-
-                if (exportedVariable->m_type == std::type_index(typeid(unsigned int)))
-                {
-                    ImGui::PushItemWidth(40.f);
-                    anythingChanged |= ImGui::DragInt(exportedVariable->m_name.c_str(), static_cast<int*>(exportedVariable->m_value));
-                }
-
-                if (exportedVariable->m_type == std::type_index(typeid(glm::vec3)))
-                {
-                    auto vector = static_cast<glm::vec3*>(exportedVariable->m_value);
-                    ImGui::PushItemWidth(200.f);
-                    anythingChanged |= ImGui::DragFloat3(exportedVariable->m_name.c_str(), &vector->x, 0.05f);
-                }
+                ImGui::PushItemWidth(40.f);
+                anythingChanged |= ImGui::DragInt(exportedVariable->m_name.c_str(), static_cast<int*>(exportedVariable->m_value));
             }
-            if (anythingChanged)
-                m_renderer->updateFromChangedVariables();
 
+            if (exportedVariable->m_type == std::type_index(typeid(glm::vec3)))
+            {
+                auto vector = static_cast<glm::vec3*>(exportedVariable->m_value);
+                ImGui::PushItemWidth(200.f);
+                anythingChanged |= ImGui::DragFloat3(exportedVariable->m_name.c_str(), &vector->x, 0.05f);
+            }
             //TODO Add more types
             //if (typeid(i) == typeid(int))
             //{
@@ -364,275 +379,129 @@ namespace nimo
             //    //ImGui::SameLine();
             //    ImGui::InputDouble("##d", &d);
             //}
-            //ImGui::NextColumn();
-            //if (typeid(i) == typeid(int))
-            //{
-            //    //ImGui::Text("Vertex");
-            //    //ImGui::SameLine();
-            //    ImGui::InputInt("##i", &i);
-            //}
-            //if (typeid(f) == typeid(float))
-            //{
-            //    //ImGui::Text("Vertex Shader");
-            //    //ImGui::SameLine();
-            //    ImGui::InputFloat("##f", &f);
-            //}
-            //if (typeid(d) == typeid(double))
-            //{
-            //    //ImGui::Text("Vertex Shader Code");
-            //    //ImGui::SameLine();
-            //    ImGui::InputDouble("##d", &d);
-            //}
-
-            ImGui::End();
         }
 
-        if (m_shadersEditorViewEnabled)
+        // Things to do and check when changing the configuration
+        if (anythingChanged)
+            m_renderer->updateFromChangedVariables();
+
+        ImGui::End();
+    }
+
+
+    void DebugPass::renderShaderEditView()
+    {
+        ImGui::SetNextWindowSize(ImVec2(400, 300), ImGuiCond_FirstUseEver);
+
+        ImGui::Begin("Shaders", &m_shadersEditorViewEnabled, ImGuiWindowFlags_NoCollapse);
+
+        ImGui::Text("Shaders in use");
+
+        ImGui::PushItemWidth(-1);
+        bool resListBox = ImGui::BeginListBox("##draw_list");
+
+        auto shaders = AssetManager::GetAllLoaded<Shader>();
+
+        std::string file, selectedFile = "";
+        for (const auto& shader : shaders)
         {
-            ImGui::SetNextWindowSize(ImVec2(400, 300), ImGuiCond_FirstUseEver);
+            auto metadata = AssetManager::GetMetadata(shader);
 
-            ImGui::Begin("Shaders", &m_shadersEditorViewEnabled, ImGuiWindowFlags_NoCollapse);
-
-            ImGui::Text("Shaders in use");
-
-            ImGui::PushItemWidth(-1);
-            bool resListBox = ImGui::BeginListBox("##draw_list");
-
-            auto shaders = AssetManager::GetAllLoaded<Shader>();
-
-            std::string file, selectedFile = "";
-            for (const auto& shader : shaders)
+            file = metadata.filepath.filename().string();
+            ImGui::Selectable(file.c_str(), false, ImGuiSelectableFlags_AllowDoubleClick);
+            if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(0))
             {
-                auto metadata = AssetManager::GetMetadata(shader);
-
-                file = metadata.filepath.filename().string();
-                ImGui::Selectable(file.c_str(), false, ImGuiSelectableFlags_AllowDoubleClick);
-                if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(0))
+                selectedFile = file;
+                if (m_openShaders.find(selectedFile) == m_openShaders.end())
                 {
-                    selectedFile = file;
-                    if (m_openShaders.find(selectedFile) == m_openShaders.end())
-                    {
-                        auto shaderEntry = std::make_unique<ShaderEntry>();
-                        shaderEntry->id = metadata.id;
-                        shaderEntry->m_shader = shader;
-                        shaderEntry->vertexSourceBak = shader->GetVertexCode();
-                        shaderEntry->fragmentSourceBak = shader->GetFragmentCode();
-                        m_openShaders[selectedFile] = std::move(shaderEntry);
-                    }
+                    auto shaderEntry                    = std::make_unique<ShaderEntry>();
+                    shaderEntry->id                     = metadata.id;
+                    shaderEntry->m_shader               = shader;
+                    shaderEntry->vertexSourceBak        = shader->GetVertexCode();
+                    shaderEntry->fragmentSourceBak      = shader->GetFragmentCode();
+                    shaderEntry->vertexLastApplied      = shader->GetVertexCode();
+                    shaderEntry->fragmentLastApplied    = shader->GetFragmentCode();
+
+                    m_openShaders[selectedFile] = std::move(shaderEntry);
                 }
             }
+        }
 
-            if (resListBox)
-                ImGui::EndListBox();
+        if (resListBox)
+            ImGui::EndListBox();
 
-            ImGui::Spacing();
-            ImGui::Separator();
-            ImGui::Spacing();
+        ImGui::Spacing();
+        ImGui::Separator();
+        ImGui::Spacing();
 
-            applyRequested |= ImGui::Button("\tApply Changes (Ctrl+8)\t");
-            ImGui::SameLine();
-            if (ImGui::Button("\tRevert Changes (Ctrl+R)\t"))
-                revertRequested = true;
+        applyRequested |= ImGui::Button("\tApply Changes (Ctrl+8)\t");
+        ImGui::SameLine();
+        if (ImGui::Button("\tRevert Changes (Ctrl+R)\t"))
+            revertRequested = true;
 
-            ImGui::Spacing();
-            ImGui::Separator();
-            ImGui::Spacing();
+        ImGui::Spacing();
+        ImGui::Separator();
+        ImGui::Spacing();
 
-            ImGui::BeginTabBar("OpenedShaders");
+        ImGui::BeginTabBar("OpenedShaders");
 
-            int i = 0;
-            auto closedShader = m_openShaders.end();
-            for (auto& [shaderFile, shader] : m_openShaders)
+        int i = 0;
+        auto closedShader = m_openShaders.end();
+        for (auto& [shaderFile, shader] : m_openShaders)
+        {
+            ImGuiTabItemFlags tabFlags = shader->dirty ? ImGuiTabItemFlags_UnsavedDocument : ImGuiTabItemFlags_None;
+            bool open;
+            bool res = ImGui::BeginTabItem((shaderFile).c_str(), &open, (shaderFile == selectedFile ? ImGuiTabItemFlags_SetSelected : ImGuiTabItemFlags_None) | tabFlags);
+            if (!open)
+                closedShader = m_openShaders.find(shaderFile);
+
+            if (res)
             {
-                ImGuiTabItemFlags tabFlags = shader->dirty ? ImGuiTabItemFlags_UnsavedDocument : ImGuiTabItemFlags_None;
-                bool open;
-                bool res = ImGui::BeginTabItem((shaderFile).c_str(), &open, (shaderFile == selectedFile ? ImGuiTabItemFlags_SetSelected : ImGuiTabItemFlags_None) | tabFlags);
-                if (!open)
-                    closedShader = m_openShaders.find(shaderFile);
+                ImGui::BeginChild("Code");
 
-                if (res)
+                //ImGui::PushItemWidth(-1);
+                float sizeY{ 400.f };
+                bool changed{ false };
+
+                changed = renderShaderEditPanel(std::string("Vertex"), shader->m_shader->GetVertexCodePtr(), shader->vertexScrollY, 0, sizeY);
+                changed |= renderShaderEditPanel(std::string("Fragment"), shader->m_shader->GetFragmentCodePtr(), shader->fragmentScrollY, 0, sizeY);
+
+                if (revertRequested)
                 {
-                    ImGui::BeginChild("Code");
+                    shader->dirty = shader->vertexSourceBak.compare(shader->m_shader->GetVertexCode()) | shader->fragmentSourceBak.compare(shader->m_shader->GetFragmentCode());
+                    shader->m_shader->GetVertexCode() = shader->vertexSourceBak;
+                    shader->m_shader->GetFragmentCode() = shader->fragmentSourceBak;
+                    //shader->dirty = false;
+                    revertRequested = false;
+                }
 
-                    //ImGui::PushItemWidth(-1);
-                    float sizeY{ 400.f };
-                    bool changed{ false };
+                if (changed)
+                    shader->dirty = !shader->vertexSourceBak.compare(shader->vertexLastApplied) || !shader->fragmentSourceBak.compare(shader->fragmentLastApplied);
 
-                    changed = renderShaderEditPanel(std::string("Vertex"), shader->m_shader->GetVertexCodePtr(), shader->vertexScrollY, 0, sizeY);
-                    changed |= renderShaderEditPanel(std::string("Fragment"), shader->m_shader->GetFragmentCodePtr(), shader->fragmentScrollY, 0, sizeY);
-
-                    if (revertRequested)
+                if (applyRequested)
+                {
+                    if (shader->dirty)
                     {
-                        shader->dirty = shader->vertexSourceBak.compare(shader->m_shader->GetVertexCode()) | shader->fragmentSourceBak.compare(shader->m_shader->GetFragmentCode());
-                        shader->m_shader->GetVertexCode() = shader->vertexSourceBak;
-                        shader->m_shader->GetFragmentCode() = shader->fragmentSourceBak;
-                        //shader->dirty = false;
-                        revertRequested = false;
-                    }
-
-                    if (changed)
-                        shader->dirty = !shader->vertexSourceBak.compare(shader->m_shader->GetVertexCode()) | !shader->fragmentSourceBak.compare(shader->m_shader->GetFragmentCode());
-
-                    if (applyRequested && shader->dirty)
-                    {
+                        shader->vertexLastApplied = shader->m_shader->GetVertexCode();
+                        shader->fragmentLastApplied = shader->m_shader->GetFragmentCode();
                         shader->m_shader->Recompile();
                         shader->dirty = false;
-                        applyRequested = false;
                     }
-
-                    ImGui::EndChild();
+                    applyRequested = false;
                 }
 
-                if (res)
-                    ImGui::EndTabItem();
+                ImGui::EndChild();
             }
-            if (closedShader != m_openShaders.end())
-                m_openShaders.erase(closedShader);
 
-            ImGui::EndTabBar();
-
-            ImGui::End();
+            if (res)
+                ImGui::EndTabItem();
         }
+        if (closedShader != m_openShaders.end())
+            m_openShaders.erase(closedShader);
 
-        if (m_fbosViewEnabled)
-        {
-            ImGui::SetNextWindowSize(ImVec2(400, 300), ImGuiCond_FirstUseEver);
+        ImGui::EndTabBar();
 
-            ImGui::Begin("FBOs", &m_fbosViewEnabled, ImGuiWindowFlags_NoCollapse);
-
-            if (ImGui::TreeNode("GBuffer"))
-            {
-                if (ImGui::TreeNode("Positions"))
-                {
-                    ImGui::Image((ImTextureID)(uint64_t)m_renderer->m_gBuffer->GetColorAttachmentId(0), ImVec2(ImGui::GetContentRegionAvailWidth(), ImGui::GetContentRegionAvailWidth() / m_renderer->m_gBuffer->GetAspectRatio()), ImVec2(0, 1), ImVec2(1, 0));
-                    ImGui::TreePop();
-                }
-                if (ImGui::TreeNode("Normals"))
-                {
-                    ImGui::Image((ImTextureID)(uint64_t)m_renderer->m_gBuffer->GetColorAttachmentId(1), ImVec2(ImGui::GetContentRegionAvailWidth(), ImGui::GetContentRegionAvailWidth() / m_renderer->m_gBuffer->GetAspectRatio()), ImVec2(0, 1), ImVec2(1, 0));
-                    ImGui::TreePop();
-                }
-                if (ImGui::TreeNode("Albedo"))
-                {
-                    ImGui::Image((ImTextureID)(uint64_t)m_renderer->m_gBuffer->GetColorAttachmentId(2), ImVec2(ImGui::GetContentRegionAvailWidth(), ImGui::GetContentRegionAvailWidth() / m_renderer->m_gBuffer->GetAspectRatio()), ImVec2(0, 1), ImVec2(1, 0));
-                    ImGui::TreePop();
-                }
-                if (ImGui::TreeNode("ARM"))
-                {
-                    ImGui::Image((ImTextureID)(uint64_t)m_renderer->m_gBuffer->GetColorAttachmentId(3), ImVec2(ImGui::GetContentRegionAvailWidth(), ImGui::GetContentRegionAvailWidth() / m_renderer->m_gBuffer->GetAspectRatio()), ImVec2(0, 1), ImVec2(1, 0));
-                    ImGui::TreePop();
-                }
-                if (m_renderer->enabledFSR2)
-                {
-                    if (ImGui::TreeNode("FSR2 Motion Vectors"))
-                    {
-                        ImGui::Image((ImTextureID)(uint64_t)m_renderer->m_gBuffer->GetColorAttachmentId(4), ImVec2(ImGui::GetContentRegionAvailWidth(), ImGui::GetContentRegionAvailWidth() / m_renderer->m_gBuffer->GetAspectRatio()), ImVec2(0, 1), ImVec2(1, 0));
-                        ImGui::TreePop();
-                    }
-                }
-                ImGui::TreePop();
-            }
-
-            if (ImGui::TreeNode("Shadow Map"))
-            {
-                ImGui::Image((ImTextureID)(uint64_t)m_renderer->m_directionalLightDepthBuffer->GetColorAttachmentId(0), ImVec2(ImGui::GetContentRegionAvailWidth(), ImGui::GetContentRegionAvailWidth() / m_renderer->m_directionalLightDepthBuffer->GetAspectRatio()), ImVec2(0, 1), ImVec2(1, 0));
-                ImGui::TreePop();
-            }
-
-            if (ImGui::TreeNode("FSR2"))
-            {
-                ImGui::Image((ImTextureID)(uint64_t)m_renderer->m_hdrFsrColorBuffer->GetColorAttachmentId(0), ImVec2(ImGui::GetContentRegionAvailWidth(), ImGui::GetContentRegionAvailWidth() / m_renderer->m_directionalLightDepthBuffer->GetAspectRatio()), ImVec2(0, 1), ImVec2(1, 0));
-                ImGui::TreePop();
-            }
-
-            if (ImGui::TreeNode("Lighting"))
-            {
-                ImGui::Image((ImTextureID)(uint64_t)m_renderer->m_hdrColorBuffer->GetColorAttachmentId(0), ImVec2(ImGui::GetContentRegionAvailWidth(), ImGui::GetContentRegionAvailWidth() / m_renderer->m_hdrColorBuffer->GetAspectRatio()), ImVec2(0, 1), ImVec2(1, 0));
-                ImGui::TreePop();
-            }
-
-            if (ImGui::TreeNode("Blooming"))
-            {
-                if (ImGui::TreeNode("Result"))
-                {
-                    ImGui::Image((ImTextureID)(uint64_t)m_renderer->m_hdrFinalBloomBuffer->GetColorAttachmentId(0), ImVec2(ImGui::GetContentRegionAvailWidth(), ImGui::GetContentRegionAvailWidth() / m_renderer->m_hdrFinalBloomBuffer->GetAspectRatio()), ImVec2(0, 1), ImVec2(1, 0));
-                    ImGui::TreePop();
-                }
-                if (ImGui::TreeNode("Bright threshold"))
-                {
-                    ImGui::Image((ImTextureID)(uint64_t)m_renderer->m_hdrBrightnessBuffer->GetColorAttachmentId(0), ImVec2(ImGui::GetContentRegionAvailWidth(), ImGui::GetContentRegionAvailWidth() / m_renderer->m_hdrBrightnessBuffer->GetAspectRatio()), ImVec2(0, 1), ImVec2(1, 0));
-                    ImGui::TreePop();
-                }
-                if (ImGui::TreeNode("Downsampling"))
-                {
-                    static int bloomDownsample = 0;
-                    ImGui::SliderInt("##BloomDownsample", &bloomDownsample, 0, 5, "%d", ImGuiSliderFlags_AlwaysClamp);
-                    switch (bloomDownsample)
-                    {
-                    case 0:
-                        ImGui::Image((ImTextureID)(uint64_t)m_renderer->m_hdrBloomDownsample1Buffer->GetColorAttachmentId(0), ImVec2(ImGui::GetContentRegionAvailWidth(), ImGui::GetContentRegionAvailWidth() / m_renderer->m_hdrBloomDownsample1Buffer->GetAspectRatio()), ImVec2(0, 1), ImVec2(1, 0));
-                        break;
-                    case 1:
-                        ImGui::Image((ImTextureID)(uint64_t)m_renderer->m_hdrBloomDownsample2Buffer->GetColorAttachmentId(0), ImVec2(ImGui::GetContentRegionAvailWidth(), ImGui::GetContentRegionAvailWidth() / m_renderer->m_hdrBloomDownsample2Buffer->GetAspectRatio()), ImVec2(0, 1), ImVec2(1, 0));
-                        break;
-                    case 2:
-                        ImGui::Image((ImTextureID)(uint64_t)m_renderer->m_hdrBloomDownsample3Buffer->GetColorAttachmentId(0), ImVec2(ImGui::GetContentRegionAvailWidth(), ImGui::GetContentRegionAvailWidth() / m_renderer->m_hdrBloomDownsample3Buffer->GetAspectRatio()), ImVec2(0, 1), ImVec2(1, 0));
-                        break;
-                    case 3:
-                        ImGui::Image((ImTextureID)(uint64_t)m_renderer->m_hdrBloomDownsample4Buffer->GetColorAttachmentId(0), ImVec2(ImGui::GetContentRegionAvailWidth(), ImGui::GetContentRegionAvailWidth() / m_renderer->m_hdrBloomDownsample4Buffer->GetAspectRatio()), ImVec2(0, 1), ImVec2(1, 0));
-                        break;
-                    case 4:
-                        ImGui::Image((ImTextureID)(uint64_t)m_renderer->m_hdrBloomDownsample5Buffer->GetColorAttachmentId(0), ImVec2(ImGui::GetContentRegionAvailWidth(), ImGui::GetContentRegionAvailWidth() / m_renderer->m_hdrBloomDownsample5Buffer->GetAspectRatio()), ImVec2(0, 1), ImVec2(1, 0));
-                        break;
-                    case 5:
-                        ImGui::Image((ImTextureID)(uint64_t)m_renderer->m_hdrBloomDownsample6Buffer->GetColorAttachmentId(0), ImVec2(ImGui::GetContentRegionAvailWidth(), ImGui::GetContentRegionAvailWidth() / m_renderer->m_hdrBloomDownsample6Buffer->GetAspectRatio()), ImVec2(0, 1), ImVec2(1, 0));
-                        break;
-
-                    default:
-                        break;
-                    }
-                    ImGui::TreePop();
-                }
-
-                if (ImGui::TreeNode("Upsampling"))
-                {
-                    static int bloomUpsample = 0;
-                    ImGui::SliderInt("##BloomUpsample", &bloomUpsample, 0, 5, "%d", ImGuiSliderFlags_AlwaysClamp);
-                    switch (bloomUpsample)
-                    {
-                    case 0:
-                        ImGui::Image((ImTextureID)(uint64_t)m_renderer->m_hdrBloomUpsample1Buffer->GetColorAttachmentId(0), ImVec2(ImGui::GetContentRegionAvailWidth(), ImGui::GetContentRegionAvailWidth() / m_renderer->m_hdrBloomUpsample1Buffer->GetAspectRatio()), ImVec2(0, 1), ImVec2(1, 0));
-                        break;
-                    case 1:
-                        ImGui::Image((ImTextureID)(uint64_t)m_renderer->m_hdrBloomUpsample2Buffer->GetColorAttachmentId(0), ImVec2(ImGui::GetContentRegionAvailWidth(), ImGui::GetContentRegionAvailWidth() / m_renderer->m_hdrBloomUpsample2Buffer->GetAspectRatio()), ImVec2(0, 1), ImVec2(1, 0));
-                        break;
-                    case 2:
-                        ImGui::Image((ImTextureID)(uint64_t)m_renderer->m_hdrBloomUpsample3Buffer->GetColorAttachmentId(0), ImVec2(ImGui::GetContentRegionAvailWidth(), ImGui::GetContentRegionAvailWidth() / m_renderer->m_hdrBloomUpsample3Buffer->GetAspectRatio()), ImVec2(0, 1), ImVec2(1, 0));
-                        break;
-                    case 3:
-                        ImGui::Image((ImTextureID)(uint64_t)m_renderer->m_hdrBloomUpsample4Buffer->GetColorAttachmentId(0), ImVec2(ImGui::GetContentRegionAvailWidth(), ImGui::GetContentRegionAvailWidth() / m_renderer->m_hdrBloomUpsample4Buffer->GetAspectRatio()), ImVec2(0, 1), ImVec2(1, 0));
-                        break;
-                    case 4:
-                        ImGui::Image((ImTextureID)(uint64_t)m_renderer->m_hdrBloomUpsample5Buffer->GetColorAttachmentId(0), ImVec2(ImGui::GetContentRegionAvailWidth(), ImGui::GetContentRegionAvailWidth() / m_renderer->m_hdrBloomUpsample5Buffer->GetAspectRatio()), ImVec2(0, 1), ImVec2(1, 0));
-                        break;
-                    case 5:
-                        ImGui::Image((ImTextureID)(uint64_t)m_renderer->m_hdrBloomUpsample6Buffer->GetColorAttachmentId(0), ImVec2(ImGui::GetContentRegionAvailWidth(), ImGui::GetContentRegionAvailWidth() / m_renderer->m_hdrBloomUpsample6Buffer->GetAspectRatio()), ImVec2(0, 1), ImVec2(1, 0));
-                        break;
-
-                    default:
-                        break;
-                    }
-                    ImGui::TreePop();
-                }
-                ImGui::TreePop();
-            }
-
-            ImGui::End();
-        }
-
-        ImGui::Render();
-
-        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+        ImGui::End();
     }
 
 
@@ -662,6 +531,165 @@ namespace nimo
     }
 
 
+    void DebugPass::renderFbosView()
+    {
+        ImGui::SetNextWindowSize(ImVec2(400, 300), ImGuiCond_FirstUseEver);
+
+        ImGui::Begin("FBOs", &m_fbosViewEnabled, ImGuiWindowFlags_NoCollapse);
+
+        if (ImGui::TreeNode("GBuffer"))
+        {
+            if (ImGui::TreeNode("Positions"))
+            {
+                ImGui::Image((ImTextureID)(uint64_t)m_renderer->m_gBuffer->GetColorAttachmentId(0),
+                    ImVec2(ImGui::GetContentRegionAvailWidth(), ImGui::GetContentRegionAvailWidth() / m_renderer->m_gBuffer->GetAspectRatio()), ImVec2(0, 1), ImVec2(1, 0));
+                ImGui::TreePop();
+            }
+            if (ImGui::TreeNode("Normals"))
+            {
+                ImGui::Image((ImTextureID)(uint64_t)m_renderer->m_gBuffer->GetColorAttachmentId(1),
+                    ImVec2(ImGui::GetContentRegionAvailWidth(), ImGui::GetContentRegionAvailWidth() / m_renderer->m_gBuffer->GetAspectRatio()), ImVec2(0, 1), ImVec2(1, 0));
+                ImGui::TreePop();
+            }
+            if (ImGui::TreeNode("Albedo"))
+            {
+                ImGui::Image((ImTextureID)(uint64_t)m_renderer->m_gBuffer->GetColorAttachmentId(2),
+                    ImVec2(ImGui::GetContentRegionAvailWidth(), ImGui::GetContentRegionAvailWidth() / m_renderer->m_gBuffer->GetAspectRatio()), ImVec2(0, 1), ImVec2(1, 0));
+                ImGui::TreePop();
+            }
+            if (ImGui::TreeNode("ARM"))
+            {
+                ImGui::Image((ImTextureID)(uint64_t)m_renderer->m_gBuffer->GetColorAttachmentId(3),
+                    ImVec2(ImGui::GetContentRegionAvailWidth(), ImGui::GetContentRegionAvailWidth() / m_renderer->m_gBuffer->GetAspectRatio()), ImVec2(0, 1), ImVec2(1, 0));
+                ImGui::TreePop();
+            }
+            if (m_renderer->enabledFSR2)
+            {
+                if (ImGui::TreeNode("FSR2 Motion Vectors"))
+                {
+                    ImGui::Image((ImTextureID)(uint64_t)m_renderer->m_gBuffer->GetColorAttachmentId(4),
+                        ImVec2(ImGui::GetContentRegionAvailWidth(), ImGui::GetContentRegionAvailWidth() / m_renderer->m_gBuffer->GetAspectRatio()), ImVec2(0, 1), ImVec2(1, 0));
+                    ImGui::TreePop();
+                }
+            }
+            ImGui::TreePop();
+        }
+
+        if (ImGui::TreeNode("Shadow Map"))
+        {
+            ImGui::Image((ImTextureID)(uint64_t)m_renderer->m_directionalLightDepthBuffer->GetColorAttachmentId(0),
+                ImVec2(ImGui::GetContentRegionAvailWidth(), ImGui::GetContentRegionAvailWidth() / m_renderer->m_directionalLightDepthBuffer->GetAspectRatio()), ImVec2(0, 1), ImVec2(1, 0));
+            ImGui::TreePop();
+        }
+
+        if (ImGui::TreeNode("FSR2"))
+        {
+            ImGui::Image((ImTextureID)(uint64_t)m_renderer->m_hdrFsrColorBuffer->GetColorAttachmentId(0),
+                ImVec2(ImGui::GetContentRegionAvailWidth(), ImGui::GetContentRegionAvailWidth() / m_renderer->m_directionalLightDepthBuffer->GetAspectRatio()), ImVec2(0, 1), ImVec2(1, 0));
+            ImGui::TreePop();
+        }
+
+        if (ImGui::TreeNode("Lighting"))
+        {
+            ImGui::Image((ImTextureID)(uint64_t)m_renderer->m_hdrColorBuffer->GetColorAttachmentId(0),
+                ImVec2(ImGui::GetContentRegionAvailWidth(), ImGui::GetContentRegionAvailWidth() / m_renderer->m_hdrColorBuffer->GetAspectRatio()), ImVec2(0, 1), ImVec2(1, 0));
+            ImGui::TreePop();
+        }
+
+        if (ImGui::TreeNode("Blooming"))
+        {
+            if (ImGui::TreeNode("Result"))
+            {
+                ImGui::Image((ImTextureID)(uint64_t)m_renderer->m_hdrFinalBloomBuffer->GetColorAttachmentId(0),
+                    ImVec2(ImGui::GetContentRegionAvailWidth(), ImGui::GetContentRegionAvailWidth() / m_renderer->m_hdrFinalBloomBuffer->GetAspectRatio()), ImVec2(0, 1), ImVec2(1, 0));
+                ImGui::TreePop();
+            }
+            if (ImGui::TreeNode("Bright threshold"))
+            {
+                ImGui::Image((ImTextureID)(uint64_t)m_renderer->m_hdrBrightnessBuffer->GetColorAttachmentId(0),
+                    ImVec2(ImGui::GetContentRegionAvailWidth(), ImGui::GetContentRegionAvailWidth() / m_renderer->m_hdrBrightnessBuffer->GetAspectRatio()), ImVec2(0, 1), ImVec2(1, 0));
+                ImGui::TreePop();
+            }
+            if (ImGui::TreeNode("Downsampling"))
+            {
+                static int bloomDownsample = 0;
+                ImGui::SliderInt("##BloomDownsample", &bloomDownsample, 0, 5, "%d", ImGuiSliderFlags_AlwaysClamp);
+                switch (bloomDownsample)
+                {
+                case 0:
+                    ImGui::Image((ImTextureID)(uint64_t)m_renderer->m_hdrBloomDownsample1Buffer->GetColorAttachmentId(0),
+                        ImVec2(ImGui::GetContentRegionAvailWidth(), ImGui::GetContentRegionAvailWidth() / m_renderer->m_hdrBloomDownsample1Buffer->GetAspectRatio()), ImVec2(0, 1), ImVec2(1, 0));
+                    break;
+                case 1:
+                    ImGui::Image((ImTextureID)(uint64_t)m_renderer->m_hdrBloomDownsample2Buffer->GetColorAttachmentId(0),
+                        ImVec2(ImGui::GetContentRegionAvailWidth(), ImGui::GetContentRegionAvailWidth() / m_renderer->m_hdrBloomDownsample2Buffer->GetAspectRatio()), ImVec2(0, 1), ImVec2(1, 0));
+                    break;
+                case 2:
+                    ImGui::Image((ImTextureID)(uint64_t)m_renderer->m_hdrBloomDownsample3Buffer->GetColorAttachmentId(0),
+                        ImVec2(ImGui::GetContentRegionAvailWidth(), ImGui::GetContentRegionAvailWidth() / m_renderer->m_hdrBloomDownsample3Buffer->GetAspectRatio()), ImVec2(0, 1), ImVec2(1, 0));
+                    break;
+                case 3:
+                    ImGui::Image((ImTextureID)(uint64_t)m_renderer->m_hdrBloomDownsample4Buffer->GetColorAttachmentId(0),
+                        ImVec2(ImGui::GetContentRegionAvailWidth(), ImGui::GetContentRegionAvailWidth() / m_renderer->m_hdrBloomDownsample4Buffer->GetAspectRatio()), ImVec2(0, 1), ImVec2(1, 0));
+                    break;
+                case 4:
+                    ImGui::Image((ImTextureID)(uint64_t)m_renderer->m_hdrBloomDownsample5Buffer->GetColorAttachmentId(0),
+                        ImVec2(ImGui::GetContentRegionAvailWidth(), ImGui::GetContentRegionAvailWidth() / m_renderer->m_hdrBloomDownsample5Buffer->GetAspectRatio()), ImVec2(0, 1), ImVec2(1, 0));
+                    break;
+                case 5:
+                    ImGui::Image((ImTextureID)(uint64_t)m_renderer->m_hdrBloomDownsample6Buffer->GetColorAttachmentId(0),
+                        ImVec2(ImGui::GetContentRegionAvailWidth(), ImGui::GetContentRegionAvailWidth() / m_renderer->m_hdrBloomDownsample6Buffer->GetAspectRatio()), ImVec2(0, 1), ImVec2(1, 0));
+                    break;
+
+                default:
+                    break;
+                }
+                ImGui::TreePop();
+            }
+
+            if (ImGui::TreeNode("Upsampling"))
+            {
+                static int bloomUpsample = 0;
+                ImGui::SliderInt("##BloomUpsample", &bloomUpsample, 0, 5, "%d", ImGuiSliderFlags_AlwaysClamp);
+                switch (bloomUpsample)
+                {
+                case 0:
+                    ImGui::Image((ImTextureID)(uint64_t)m_renderer->m_hdrBloomUpsample1Buffer->GetColorAttachmentId(0),
+                        ImVec2(ImGui::GetContentRegionAvailWidth(), ImGui::GetContentRegionAvailWidth() / m_renderer->m_hdrBloomUpsample1Buffer->GetAspectRatio()), ImVec2(0, 1), ImVec2(1, 0));
+                    break;
+                case 1:
+                    ImGui::Image((ImTextureID)(uint64_t)m_renderer->m_hdrBloomUpsample2Buffer->GetColorAttachmentId(0),
+                        ImVec2(ImGui::GetContentRegionAvailWidth(), ImGui::GetContentRegionAvailWidth() / m_renderer->m_hdrBloomUpsample2Buffer->GetAspectRatio()), ImVec2(0, 1), ImVec2(1, 0));
+                    break;
+                case 2:
+                    ImGui::Image((ImTextureID)(uint64_t)m_renderer->m_hdrBloomUpsample3Buffer->GetColorAttachmentId(0),
+                        ImVec2(ImGui::GetContentRegionAvailWidth(), ImGui::GetContentRegionAvailWidth() / m_renderer->m_hdrBloomUpsample3Buffer->GetAspectRatio()), ImVec2(0, 1), ImVec2(1, 0));
+                    break;
+                case 3:
+                    ImGui::Image((ImTextureID)(uint64_t)m_renderer->m_hdrBloomUpsample4Buffer->GetColorAttachmentId(0),
+                        ImVec2(ImGui::GetContentRegionAvailWidth(), ImGui::GetContentRegionAvailWidth() / m_renderer->m_hdrBloomUpsample4Buffer->GetAspectRatio()), ImVec2(0, 1), ImVec2(1, 0));
+                    break;
+                case 4:
+                    ImGui::Image((ImTextureID)(uint64_t)m_renderer->m_hdrBloomUpsample5Buffer->GetColorAttachmentId(0),
+                        ImVec2(ImGui::GetContentRegionAvailWidth(), ImGui::GetContentRegionAvailWidth() / m_renderer->m_hdrBloomUpsample5Buffer->GetAspectRatio()), ImVec2(0, 1), ImVec2(1, 0));
+                    break;
+                case 5:
+                    ImGui::Image((ImTextureID)(uint64_t)m_renderer->m_hdrBloomUpsample6Buffer->GetColorAttachmentId(0),
+                        ImVec2(ImGui::GetContentRegionAvailWidth(), ImGui::GetContentRegionAvailWidth() / m_renderer->m_hdrBloomUpsample6Buffer->GetAspectRatio()), ImVec2(0, 1), ImVec2(1, 0));
+                    break;
+
+                default:
+                    break;
+                }
+                ImGui::TreePop();
+            }
+            ImGui::TreePop();
+        }
+
+        ImGui::End();
+    }
+
+
     // https://github.com/libigl/libigl/issues/1300#issuecomment-1310174619
     std::string DebugPass::labelPrefix(const char* const label)
     {
@@ -683,7 +711,7 @@ namespace nimo
     unsigned int cubeVAO2 = 0;
     unsigned int cubeVBO2 = 0;
 
-    void DebugPass::renderOOB(const std::shared_ptr<OOB>& oob)
+    void DebugPass::renderOBB(const std::shared_ptr<OBB>& oob)
     {
         // Top face
         glm::vec3 top1{ oob->center.x - oob->extents.x, oob->center.y + oob->extents.y, oob->center.z + oob->extents.z };
@@ -740,6 +768,7 @@ namespace nimo
         glDrawArrays(GL_LINES, 0, 32);
         glBindVertexArray(0);
     }
+
 
     unsigned int frustumVAO2 = 0;
     unsigned int frustumVBO2 = 0;

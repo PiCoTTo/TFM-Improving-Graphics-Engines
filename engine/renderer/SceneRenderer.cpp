@@ -108,7 +108,7 @@ nimo::SceneRenderer::SceneRenderer(bool enableDebug) :
     directionalLightBufferDetails.height = 4096;
     directionalLightBufferDetails.clearColorOnBind = true;
     directionalLightBufferDetails.clearDepthOnBind = true;
-    //directionalLightBufferDetails.colorAttachments.push_back({ GL_RGB16F, GL_RGB, GL_FLOAT });
+    directionalLightBufferDetails.colorAttachments.push_back({ GL_RGB16F, GL_RGB, GL_FLOAT });
     m_directionalLightDepthBuffer = std::make_shared<FrameBuffer>(directionalLightBufferDetails);
     // GBuffer
     initFBOs(enabledFSR2);
@@ -309,6 +309,10 @@ void nimo::SceneRenderer::Render(std::shared_ptr<FrameBuffer> target, CameraComp
 
 void nimo::SceneRenderer::updateFromChangedVariables()
 {
+    // Atomation due to current incompatibilities
+    if (!m_useDeferredShading)
+        enabledFSR2 = false;
+
     auto renderPass = std::find_if(m_renderPasses.begin(), m_renderPasses.end(), [](auto i) {
         return i.first == RenderPassId::Deferred; });
 

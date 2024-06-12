@@ -42,6 +42,8 @@ namespace nimo
 
         float displayedWidth = target ? target->GetDetails().width : Application::Instance().GetWindow().GetWidth();
         float displayedHeight = target ? target->GetDetails().height : Application::Instance().GetWindow().GetHeight();
+        if (!displayedWidth || !displayedHeight)
+            displayedWidth = displayedHeight = 1;
 
         auto camTransform = cameraTransform;
         auto cam = cameraSettings;
@@ -55,23 +57,23 @@ namespace nimo
         const auto viewProj = projJittered * cameraTransform.GetView();
         const auto viewProjUnjittered = projUnjittered * cameraTransform.GetView();
 
-        glViewport(0, 0, target ? target->GetDetails().width : Application::Instance().GetWindow().GetWidth(), target ? target->GetDetails().height : Application::Instance().GetWindow().GetHeight());
+        glViewport(0, 0, target ? target->GetDetails().width : displayedWidth, target ? target->GetDetails().height : displayedHeight);
 
         glm::mat4 projection = glm::perspectiveFov(glm::radians(cam.FOV),
-            target ? (float)target->GetDetails().width : (float)Application::Instance().GetWindow().GetWidth(),
-            target ? (float)target->GetDetails().height : (float)Application::Instance().GetWindow().GetHeight(),
+            target ? (float)target->GetDetails().width : displayedWidth,
+            target ? (float)target->GetDetails().height : displayedHeight,
             cam.ClippingPlanes.Near, cam.ClippingPlanes.Far);
         glm::mat4 projectionOrtho = glm::ortho(
-            -(target ? (float)target->GetDetails().width : (float)Application::Instance().GetWindow().GetWidth()) * 0.5f,
-            (target ? (float)target->GetDetails().width : (float)Application::Instance().GetWindow().GetWidth()) * 0.5f,
-            -(target ? (float)target->GetDetails().height : (float)Application::Instance().GetWindow().GetHeight()) * 0.5f,
-            (target ? (float)target->GetDetails().height : (float)Application::Instance().GetWindow().GetHeight()) * 0.5f,
+            -(target ? (float)target->GetDetails().width : displayedWidth) * 0.5f,
+            (target ? (float)target->GetDetails().width : displayedWidth) * 0.5f,
+            -(target ? (float)target->GetDetails().height : displayedHeight) * 0.5f,
+            (target ? (float)target->GetDetails().height : displayedHeight) * 0.5f,
             -0.1f, cam.ClippingPlanes.Far);
         glm::mat4 viewMatrix = camTransform.GetView();
         auto viewPosition = glm::vec3(camTransform.Translation.x, camTransform.Translation.y, camTransform.Translation.z);
 
         // Frustum Culling
-        m_renderer->updateFrustumCulling(camTransform, cam, displayedWidth, displayedHeight);
+        m_renderer->updateFrustumCulling(camTransform, cameraSettings, displayedWidth, displayedHeight);
 
         m_renderer->m_geometryFrameTimer.Reset();
         // Render scene into gbuffer
