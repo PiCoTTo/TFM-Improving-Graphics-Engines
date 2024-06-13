@@ -241,7 +241,7 @@ nimo::GUID nimo::AssetSerializer<nimo::Scene>::DeserializeEntity(const std::shar
         id = GUID::Create();
     nimo::Entity createdEntity = scene->CreateEntityWithID(id);
     bool exportVariables{ false };
-    if (source.contains("PointLight") || source.contains("AudioSource") || source.contains("Camera") || source.contains("Mesh"))
+    if (source.contains("PointLight") || source.contains("AudioSource") || source.contains("Camera") || source.contains("Mesh") || source.contains("DirectionalLight"))
     {
         exportVariables = true;
     }
