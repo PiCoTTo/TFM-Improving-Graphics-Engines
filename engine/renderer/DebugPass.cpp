@@ -31,11 +31,14 @@ namespace nimo
 
             std::string line;
             std::getline(csvFile, line, '\n');
+            int numLines = 1;
             while (!csvFile.eof())
             {
+                numLines++;
                 lines.push_back(line);
                 std::getline(csvFile, line);
             }
+            m_recordingTime = numLines - 2;
             
             if (lines.size() != 0)
             {
@@ -164,18 +167,18 @@ namespace nimo
                         else
                             lines.insert(lines.begin(), 2 + (m_lastSample2DumpIdx - m_firstSample2DumpIdx), "");
 
-                        // Get the header numbering if any
-                        int delimIdx = m_headerName.find("#");
-                        if (delimIdx != std::string::npos)
-                        {
-                            lastHeader = m_headerName.substr(0, delimIdx);
-                            headerNumber = std::atoi(m_headerName.substr(delimIdx + 1, m_headerName.size() - 1 - delimIdx).c_str()) + 1;
-                        }
-                        else // No header number delimiter found
-                            lastHeader = m_headerName;
-
                         csvFile.close();
                     }
+
+                    // Get the header numbering if any
+                    int delimIdx = m_headerName.find("#");
+                    if (delimIdx != std::string::npos)
+                    {
+                        lastHeader = m_headerName.substr(0, delimIdx);
+                        headerNumber = std::atoi(m_headerName.substr(delimIdx + 1, m_headerName.size() - 1 - delimIdx).c_str()) + 1;
+                    }
+                    else // No header number delimiter found
+                        lastHeader = m_headerName;
 
                     // Dump the samples
                     csvFile.open("PerformanceDump.csv", std::ios::out);
@@ -239,19 +242,11 @@ namespace nimo
 
                 m_renderer->m_shaderUnlitColor->Set("transform", m_renderer->m_scene->GetWorldSpaceTransformMatrix(m_renderer->m_scene->GetEntity(id.Id)));
 
-                auto oob = m.source->getOOB();
-                renderOBB(oob);
+                auto obb = m.source->getOOB();
+                renderOBB(obb);
 
                 entitiesDrawn++;
             });
-            if (m_renderer->enabledFrustumCulling)
-            {
-                //m_renderer->m_shaderUnlitColor->Set("transform", glm::mat4(1.0f));
-                //m_renderer->m_shaderUnlitColor->Set("transform", cameraTransform.GetTransform());
-                //m_renderer->m_shaderUnlitColor->Set("color", glm::vec3(1.f, 0.f, 0.f));
-                //if(cam.frustum)
-                //    renderFrustum(cam.frustum);
-            }
         }
 
         ImGui_ImplOpenGL3_NewFrame();
@@ -331,13 +326,14 @@ namespace nimo
 
         auto cameraParam = static_cast<glm::vec3*>(&cameraTransform.GetFront());
         ImGui::DragFloat3("Camera Forward", &cameraParam->x, 0.05f);
-        if (m_renderer->enabledFrustumCulling)
-        {
-            glm::vec3 frustumParam(cameraSettings.frustum->visibleVertices[static_cast<int>(Frustum::FrustumVertice::FarBottomLeft)]);
-            ImGui::DragFloat3("Frustum Min (far bottom left)", &frustumParam.x, 0.05f);
-            frustumParam = cameraSettings.frustum->visibleVertices[static_cast<int>(Frustum::FrustumVertice::NearTopRight)];
-            ImGui::DragFloat3("Frustum Max (near top right)", &frustumParam.x, 0.05f);
-        }
+
+        //if (m_renderer->enabledFrustumCulling)
+        //{
+            //glm::vec3 frustumParam(cameraSettings.frustum->visibleVertices[static_cast<int>(Frustum::FrustumVertice::FarBottomLeft)]);
+            //ImGui::DragFloat3("Frustum Min (far bottom left)", &frustumParam.x, 0.05f);
+            //frustumParam = cameraSettings.frustum->visibleVertices[static_cast<int>(Frustum::FrustumVertice::NearTopRight)];
+            //ImGui::DragFloat3("Frustum Max (near top right)", &frustumParam.x, 0.05f);
+        //}
 
         bool anythingChanged{ false };
         for (const auto& exportedVariablePair : ExportedVariablesManager::instance()->variables())
