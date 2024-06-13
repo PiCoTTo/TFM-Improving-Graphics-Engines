@@ -28,7 +28,9 @@ ${CMAKE_CURRENT_SOURCE_DIR}/renderer/Mesh.cpp
 ${CMAKE_CURRENT_SOURCE_DIR}/renderer/SceneRenderer.cpp 
 ${CMAKE_CURRENT_SOURCE_DIR}/renderer/DebugPass.cpp 
 ${CMAKE_CURRENT_SOURCE_DIR}/renderer/DeferredPass.cpp 
-${CMAKE_CURRENT_SOURCE_DIR}/renderer/ForwardPass.cpp 
+${CMAKE_CURRENT_SOURCE_DIR}/renderer/ForwardPass.cpp
+${CMAKE_CURRENT_SOURCE_DIR}/renderer/PostprocessPass.cpp
+${CMAKE_CURRENT_SOURCE_DIR}/renderer/GuiPass.cpp
 ${CMAKE_CURRENT_SOURCE_DIR}/scene/Scene.cpp 
 ${CMAKE_CURRENT_SOURCE_DIR}/scene/SceneSerializer.cpp 
 ${CMAKE_CURRENT_SOURCE_DIR}/scene/SceneManager.cpp 

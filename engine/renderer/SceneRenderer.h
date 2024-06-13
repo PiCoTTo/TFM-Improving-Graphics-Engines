@@ -25,6 +25,7 @@ namespace nimo
         Forward,
         Shadow,
         Postprocess,
+        GUI,
         Debug
     };
 
@@ -142,7 +143,9 @@ namespace nimo
         float m_cumulativeFrameTime = 1 / FPS_LIMIT;
         bool m_mustRender{ true };
         unsigned int m_renderEntitiesLimit{ 724 };
-        unsigned int m_pointLightEntitiesLimit{ 32 };
+        //unsigned int m_pointLightEntitiesLimit{ 32 };
+        const unsigned int m_maxNumberPointLights{ 128 };
+        unsigned int m_pointLightEntitiesLimit{ 128 };
 
         // FSR2 variables
         uint32_t renderWidth;
@@ -152,8 +155,8 @@ namespace nimo
 
         bool fsr2FirstInit = true;
         float fsr2Sharpness = 0;
-        float fsr2Ratio = 1.7f; // FFX_FSR2_QUALITY_MODE_BALANCED
-        //float fsr2Ratio = 3.0f; // FFX_FSR2_QUALITY_MODE_ULTRA_PERFORMANCE
+        //float fsr2Ratio = 1.7f; // FFX_FSR2_QUALITY_MODE_BALANCED
+        float fsr2Ratio = 3.0f; // FFX_FSR2_QUALITY_MODE_ULTRA_PERFORMANCE
         FfxFsr2Context fsr2Context;
         std::unique_ptr<char[]> fsr2ScratchMemory;
 

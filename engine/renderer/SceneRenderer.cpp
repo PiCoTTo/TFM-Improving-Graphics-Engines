@@ -9,6 +9,8 @@
 #include "renderer/DebugPass.h"
 #include "renderer/DeferredPass.h"
 #include "renderer/ForwardPass.h"
+#include "renderer/PostprocessPass.h"
+#include "renderer/GuiPass.h"
 #include "glm/glm.hpp"
 #include "GLFW/glfw3.h"
 
@@ -236,6 +238,9 @@ void nimo::SceneRenderer::initialize()
     else
         m_renderPasses.push_back({ RenderPassId::Forward, std::make_shared<nimo::ForwardPass>(shared_from_this()) });
 
+    m_renderPasses.push_back({ RenderPassId::Postprocess, std::make_shared<nimo::PostprocessPass>(shared_from_this()) });
+    m_renderPasses.push_back({ RenderPassId::GUI, std::make_shared<nimo::GuiPass>(shared_from_this()) });
+
     if (m_enabledDebug)
     {
         if (!m_debugPass)
@@ -426,8 +431,8 @@ void nimo::SceneRenderer::initFBOs(bool fsrActive)
     FrameBuffer::Details hdrFsrColorBufferDetails;
     hdrFsrColorBufferDetails.width = renderWidth;
     hdrFsrColorBufferDetails.height = renderHeight;
-//    hdrFsrColorBufferDetails.clearColorOnBind = true;
-//    hdrFsrColorBufferDetails.clearDepthOnBind = true;
+    hdrFsrColorBufferDetails.clearColorOnBind = true;
+    hdrFsrColorBufferDetails.clearDepthOnBind = true;
     hdrFsrColorBufferDetails.colorAttachments.push_back({ GL_R11F_G11F_B10F, GL_RGB, GL_FLOAT, "colorHdrRenderRes" });
     m_hdrFsrColorBuffer = std::make_shared<FrameBuffer>(hdrFsrColorBufferDetails);
 
@@ -435,8 +440,8 @@ void nimo::SceneRenderer::initFBOs(bool fsrActive)
     FrameBuffer::Details hdrColorBufferDetails;
     hdrColorBufferDetails.width = 1920;
     hdrColorBufferDetails.height = 1080;
-    //hdrColorBufferDetails.clearColorOnBind = true;
-    //hdrColorBufferDetails.clearDepthOnBind = true;
+    hdrColorBufferDetails.clearColorOnBind = true;
+    hdrColorBufferDetails.clearDepthOnBind = true;
     hdrColorBufferDetails.colorAttachments.push_back({ fsrActive ? GL_R11F_G11F_B10F : GL_RGBA16F, GL_RGB, GL_FLOAT, "colorHdrWindowRes" });
     m_hdrColorBuffer = std::make_shared<FrameBuffer>(hdrColorBufferDetails);
 }
@@ -467,52 +472,3 @@ void nimo::SceneRenderer::updateFrustumCulling(const nimo::TransformComponent& c
         });
     }
 }
-
-
-//bool nimo::SceneRenderer::AABB::isOnFrustum(const Frustum& camFrustum, const TransformComponent& modelTransform) const
-//{
-//    auto modelMatrix = modelTransform.GetTransform();
-//
-//    //Get global scale thanks to our transform
-//    const glm::vec3 globalCenter{ modelMatrix * glm::vec4(center, 1.f) };
-//
-//    // Scaled orientation
-//    glm::vec3 right = modelTransform.GetRight() * extents.x;
-//    glm::vec3 up = modelTransform.GetUp() * extents.y;
-//    glm::vec3 forward = modelTransform.GetFront() * extents.z;
-//
-//    /*glm::vec3*/ right = glm::normalize(glm::cross(forward, glm::vec3(0.0f, 1.0f, 0.0f)));
-//    /*glm::vec3*/ up = glm::normalize(glm::cross(right, forward));
-//
-//    const float newIi = std::abs(glm::dot(glm::vec3{ 1.f, 0.f, 0.f }, right)) +
-//        std::abs(glm::dot(glm::vec3{ 1.f, 0.f, 0.f }, up)) +
-//        std::abs(glm::dot(glm::vec3{ 1.f, 0.f, 0.f }, forward));
-//
-//    const float newIj = std::abs(glm::dot(glm::vec3{ 0.f, 1.f, 0.f }, right)) +
-//        std::abs(glm::dot(glm::vec3{ 0.f, 1.f, 0.f }, up)) +
-//        std::abs(glm::dot(glm::vec3{ 0.f, 1.f, 0.f }, forward));
-//
-//    const float newIk = std::abs(glm::dot(glm::vec3{ 0.f, 0.f, 1.f }, right)) +
-//        std::abs(glm::dot(glm::vec3{ 0.f, 0.f, 1.f }, up)) +
-//        std::abs(glm::dot(glm::vec3{ 0.f, 0.f, 1.f }, forward));
-//
-//    //We not need to divise scale because it's based on the half extention of the AABB
-//    const AABB globalAABB(globalCenter, newIi, newIj, newIk);
-//
-//    return (globalAABB.isOnOrForwardPlane(camFrustum.leftFace) &&
-//        globalAABB.isOnOrForwardPlane(camFrustum.rightFace) &&
-//        globalAABB.isOnOrForwardPlane(camFrustum.topFace) &&
-//        globalAABB.isOnOrForwardPlane(camFrustum.bottomFace) &&
-//        globalAABB.isOnOrForwardPlane(camFrustum.nearFace) &&
-//        globalAABB.isOnOrForwardPlane(camFrustum.farFace));
-//}
-//
-//
-//bool nimo::SceneRenderer::AABB::isOnOrForwardPlane(const Plane& plane) const
-//{
-//    // Compute the projection interval radius of b onto L(t) = b.c + t * p.n
-//    const float r = extents.x * std::abs(plane.normal.x) +
-//        extents.y * std::abs(plane.normal.y) + extents.z * std::abs(plane.normal.z);
-//
-//    return -r <= plane.getSignedDistanceToPlane(center);
-//}

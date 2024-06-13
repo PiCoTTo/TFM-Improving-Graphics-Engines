@@ -25,6 +25,16 @@ namespace nimo
         return float(x) * glm::uintBitsToFloat(0x2f800004u);
     }
 
+    //struct Light
+    //{
+    //    glm::
+    //};
+
+    struct ShadowUniforms
+    {
+
+    };
+
 	class DeferredPass : public RenderPass
 	{
 	public:
