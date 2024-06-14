@@ -1,4 +1,4 @@
-# nimo
+# Improving Graphics Engines
 OpenGL Game Engine Improvement
 
 Requirements:
