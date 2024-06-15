@@ -40,29 +40,10 @@ namespace nimo
     class SceneRenderer : public std::enable_shared_from_this<SceneRenderer>
     {
     public:
-        struct Plane
-        {
-            Plane() {}
-            Plane(const glm::vec3& p1, const glm::vec3& norm)
-                : position(p1),
-                normal(glm::normalize(norm)),
-                distance(glm::dot(normal, p1))
-            {}
-
-            glm::vec3 position{ 0.f, 0.f, 0.f };
-            glm::vec3 normal{ 0.f, 0.f, 0.f };
-            float distance{ 0.f };
-
-            float getSignedDistanceToPlane(const glm::vec3& point) const
-            {
-                return glm::dot(normal, point) - distance;
-            }
-        };
-
         SceneRenderer(bool enableDebug = false);
         ~SceneRenderer();
 
-        bool limitFPS{ true };
+        bool limitFPS{ false };
         bool m_useDeferredShading{ true };
         bool enabledFrustumCulling{ false };
         bool enabledFSR2{ false };
@@ -167,6 +148,7 @@ namespace nimo
         std::shared_ptr<SceneRenderer> m_renderer;
 
         bool m_mustReconfigurePipeline{ false };
+        bool m_mustCleanCulledEntities{ false };
         bool m_currentlyUsingFSR2{ false };
 
         std::shared_ptr<nimo::Frustum> getFrustumFromCamera(const nimo::TransformComponent& transform, float fov, float width, float height, float nearDist, float farDist);

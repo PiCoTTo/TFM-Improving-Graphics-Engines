@@ -231,8 +231,9 @@ void nimo::SceneRenderer::SetScene(std::shared_ptr<Scene> scene)
 
 void nimo::SceneRenderer::initialize()
 {
-    //m_renderPasses.push_back(std::make_shared<nimo::DeferredPass>(shared_from_this()));
+    // Render pipeline configuration
     m_renderPasses.clear();
+
     if(m_useDeferredShading)
         m_renderPasses.push_back({ RenderPassId::Deferred, std::make_shared<nimo::DeferredPass>(shared_from_this()) });
     else
@@ -293,6 +294,8 @@ void nimo::SceneRenderer::Render(std::shared_ptr<FrameBuffer> target, CameraComp
         else
             m_cumulativeFrameTime = 0;
     }
+    else
+        m_cumulativeFrameTime = 0;
 
     if (!m_mustRender)
         return;
@@ -300,7 +303,7 @@ void nimo::SceneRenderer::Render(std::shared_ptr<FrameBuffer> target, CameraComp
     nimo::Renderer::BeginFrame();
 
     for (const auto& renderPass : m_renderPasses)
-        renderPass.second->render(target, cameraSettings, cameraTransform, deltaTime);
+        renderPass.second->render(target, cameraSettings, cameraTransform, limitFPS ? m_cumulativeFrameTime : deltaTime);
 
     nimo::Renderer::EndFrame();
 
@@ -453,6 +456,8 @@ void nimo::SceneRenderer::updateFrustumCulling(const nimo::TransformComponent& c
     unsigned int entitiesDrawn = 0;
     if (enabledFrustumCulling)
     {
+        m_mustCleanCulledEntities = true;
+
         camera.frustum = getFrustumFromCamera(camTransform, glm::radians(camera.FOV), viewportWidth, viewportHeight, camera.ClippingPlanes.Near, camera.ClippingPlanes.Far);
 
         m_scene->entitiesRegistry().view<ActiveComponent, IDComponent, MeshComponent, TransformComponent>().each(
@@ -470,5 +475,15 @@ void nimo::SceneRenderer::updateFrustumCulling(const nimo::TransformComponent& c
 
             entitiesDrawn++;
         });
+    }
+    else if (m_mustCleanCulledEntities)
+    {
+        m_scene->entitiesRegistry().view<ActiveComponent, IDComponent, MeshComponent, TransformComponent>().each(
+            [&](ActiveComponent& active, IDComponent& id, MeshComponent& m, TransformComponent& t)
+        {
+            m.inFrustum = true;
+        });
+
+        m_mustCleanCulledEntities = false;
     }
 }
