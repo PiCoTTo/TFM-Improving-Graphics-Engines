@@ -38,10 +38,10 @@ namespace nimo
 		void render(std::shared_ptr<FrameBuffer> target, CameraComponent& cameraSettings, const TransformComponent& cameraTransform, float deltaTime) override;
 
 	private:
-		bool m_statsViewEnabled				{ true };
-		bool m_exportedVariablesViewEnabled	{ true };
+		bool m_statsViewEnabled				{ false };
+		bool m_exportedVariablesViewEnabled	{ false };
 		bool m_shadersEditorViewEnabled		{ false };
-		bool m_fbosViewEnabled				{ true };
+		bool m_fbosViewEnabled				{ false };
 		bool m_obbDrawEnabled				{ false };
 		bool applyRequested					{ false };
 		bool revertRequested				{ false };

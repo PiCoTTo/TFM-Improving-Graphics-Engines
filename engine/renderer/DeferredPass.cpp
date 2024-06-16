@@ -102,7 +102,7 @@ namespace nimo
         m_renderer->m_geometryFrameTimer.Stop();
 
         m_renderer->m_lightingFrameTimer.Reset();
-        // Render scene into directional light depth buffer
+        // Shadow map
         auto directionalLightEntities = m_renderer->m_scene->entitiesRegistry().view<DirectionalLightComponent>();
         auto directionalLightProjection = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, 0.1f, 100.0f);
         if (directionalLightEntities.size())
@@ -125,11 +125,12 @@ namespace nimo
             });
             glCullFace(GL_BACK);
         }
-        // Lighting pass
+
         // Clean LightDepthBuffer
         //glClear(GL_DEPTH_BUFFER_BIT);
         //glClearDepthf(1.0f);
 
+        // Lighting pass
         std::shared_ptr<FrameBuffer> m_hdrRenderColorBuffer = m_renderer->enabledFSR2 ? m_renderer->m_hdrFsrColorBuffer : m_renderer->m_hdrColorBuffer;
 
         m_hdrRenderColorBuffer->Bind();

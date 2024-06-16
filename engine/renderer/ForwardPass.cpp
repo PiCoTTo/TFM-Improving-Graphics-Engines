@@ -48,7 +48,7 @@ namespace nimo
         m_renderer->m_lightingFrameTimer.Reset();
         unsigned int entitiesDrawn = 0;
 
-        // Render scene into directional light depth buffer
+        // Shadow map
         auto directionalLightEntities = m_renderer->m_scene->entitiesRegistry().view<DirectionalLightComponent>();
         auto directionalLightProjection = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, 0.1f, 100.0f);
         if (directionalLightEntities.size())

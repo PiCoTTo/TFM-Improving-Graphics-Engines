@@ -244,6 +244,7 @@ void nimo::SceneRenderer::initialize()
 
     if (m_enabledDebug)
     {
+        // If debugging pass already exists, keep it
         if (!m_debugPass)
             m_debugPass = std::make_shared<nimo::DebugPass>(shared_from_this());
         m_renderPasses.push_back({ RenderPassId::Debug, m_debugPass });
